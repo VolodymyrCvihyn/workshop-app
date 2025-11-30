@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-end mb-3">
+    <div>
+        <h1 class="h4 mb-1">Дашборд</h1>
+        <small class="text-muted">Шафи та ємності з матеріалами</small>
+    </div>
+    <div>
+        <a href="{{ url_for('download_backup') }}" class="btn btn-outline-secondary btn-sm">
+            Резервна копія БД
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        {% if shelves %}
+            <div class="accordion" id="shelvesAccordion">
+                {% for shelf in shelves %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ shelf.location.id }}">
+                            <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#collapse{{ shelf.location.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="collapse{{ shelf.location.id }}">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="fw-semibold">{{ shelf.location.name }}</span>
+                                    {% if shelf.containers|length %}
+                                        <span class="badge text-bg-secondary">
+                                            {{ shelf.containers|length }} ємн.
+                                        </span>
+                                    {% endif %}
+                                    {% if shelf.has_low %}
+                                        <span class="badge text-bg-danger">
+                                            Низькі запаси
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ shelf.location.id }}"
+                             class="accordion-collapse collapse"
+                             aria-labelledby="heading{{ shelf.location.id }}"
+                             data-bs-parent="#shelvesAccordion">
+                            <div class="accordion-body">
+                                {% if shelf.containers %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm align-middle">
+                                            <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Матеріал</th>
+                                                <th class="text-end">Залишок</th>
+                                                <th class="text-end">Мін. залишок</th>
+                                                <th class="text-end">Дії</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {% for c in shelf.containers %}
+                                                {% set is_low = c.min_balance is not none and c.balance < c.min_balance %}
+                                                <tr class="{% if is_low %}table-danger{% endif %}">
+                                                    <td>{{ c.id }}</td>
+                                                    <td>{{ c.material_code }} – {{ c.material_name }} ({{ c.material_unit }})</td>
+                                                    <td class="text-end">{{ c.balance }} {{ c.material_unit }}</td>
+                                                    <td class="text-end">
+                                                        {% if c.min_balance is not none %}
+                                                            {{ c.min_balance }} {{ c.material_unit }}
+                                                        {% else %}
+                                                            <span class="text-muted small">не задано</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex justify-content-end gap-2">
+                                                            <a href="{{ url_for('container_history', container_id=c.id) }}"
+                                                               class="btn btn-outline-secondary btn-sm">
+                                                                Історія
+                                                            </a>
+                                                            <a href="{{ url_for('admin_containers', location_id=c.location_id) }}"
+                                                               class="btn btn-outline-primary btn-sm">
+                                                                В адмінку
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="mt-2 d-flex justify-content-end">
+                                        <a href="{{ url_for('print_qr', location_id=shelf.location.id) }}"
+                                           class="btn btn-outline-secondary btn-sm">
+                                            Пакетний друк QR для цієї шафи
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted mb-0">
+                                        У цій шафі ще немає жодної ємності.
+                                        Додайте її на сторінці <a href="{{ url_for('admin_containers') }}">«Ємності»</a>.
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                Шаф поки немає. Додайте хоча б одну локацію на сторінці
+                <a href="{{ url_for('admin_locations') }}">«Локації»</a>.
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Звіт по матеріалах{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <h1 class="h4 mb-1">Звіт по матеріалах (списання)</h1>
+    <small>Скільки кожного матеріалу списано за період</small>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Фільтри</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Працівник</label>
+                <select name="worker_id" class="form-select">
+                    <option value="">-- Всі працівники --</option>
+                    {% for w in workers %}
+                        <option value="{{ w.id }}"
+                            {% if selected_worker_id and selected_worker_id == w.id %}selected{% endif %}>
+                            {{ w.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Дата з</label>
+                <input type="date" name="date_from" value="{{ filters.date_from or '' }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Дата по</label>
+                <input type="date" name="date_to" value="{{ filters.date_to or '' }}" class="form-control">
+            </div>
+            <div class="col-md-2 d-flex align-items-end justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">Показати</button>
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+                <a href="{{ url_for('report_materials') }}" class="btn btn-outline-secondary btn-sm">
+                    Очистити фільтри
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Результат</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th>Матеріал</th>
+                    <th class="text-end">Списано</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for r in rows %}
+                    <tr>
+                        <td>{{ r.material_code }} – {{ r.material_name }} ({{ r.material_unit }})</td>
+                        <td class="text-end">{{ r.total_qty }} {{ r.material_unit }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="2" class="text-center text-muted">
+                            Немає даних за вказаний період.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mb-0">
+            У звіт потрапляють лише операції типу <strong>OUT</strong> (списання).
+        </p>
+    </div>
+</div>
+{% endblock %}

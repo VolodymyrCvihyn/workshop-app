@@ -1,0 +1,74 @@
+# Чекліст запуску: сервер БЕЗ інтернету (через флешку і tar-файл)
+
+## 0. Дії на локальному ПК (Windows / інший комп’ютер з Docker)
+
+1. Зібрати Docker-образ (якщо ще не зібраний)
+
+    cd /path/to/workshop-app
+    docker build -t workshop-app:1 .
+
+2. Зберегти образ у tar-файл
+
+    docker save -o workshop-app.tar workshop-app:1
+
+3. Скопіювати файл `workshop-app.tar` на флешку.
+
+
+## 1. Дії на сервері (без інтернету)
+
+1. Встановити Docker (Ubuntu / Debian)
+
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo systemctl enable docker
+    sudo systemctl start docker
+
+2. Скопіювати tar-файл з флешки на сервер (шлях може відрізнятися)
+
+    mkdir -p ~/docker-images
+    cp /media/$USER/USB/workshop-app.tar ~/docker-images/
+    cd ~/docker-images
+
+3. Завантажити образ у Docker з tar-файлу
+
+    sudo docker load -i workshop-app.tar
+
+   Після цього Docker повинен показати щось на кшталт:
+
+    Loaded image: workshop-app:1
+
+4. Запустити контейнер
+
+    sudo docker run -d \
+      --name workshop-app \
+      -p 8000:8000 \
+      --restart unless-stopped \
+      workshop-app:1
+
+5. Відкрити в браузері (в локальній мережі)
+
+    http://IP_СЕРВЕРА:8000
+
+
+## 2. Корисні команди на сервері
+
+Подивитися запущені контейнери:
+
+    sudo docker ps
+
+Переглянути логи застосунку:
+
+    sudo docker logs -f workshop-app
+
+Зупинити контейнер:
+
+    sudo docker stop workshop-app
+
+Запустити контейнер знову:
+
+    sudo docker start workshop-app
+
+Видалити контейнер (ДАНІ всередині контейнера буде втрачено):
+
+    sudo docker stop workshop-app
+    sudo docker rm workshop-app

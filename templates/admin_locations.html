@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Локації{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <h1 class="h4 mb-1">Локації (шафи, стелажі)</h1>
+    <small class="text-muted">Місця зберігання матеріалів</small>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Додати локацію</h5>
+                <form method="post">
+                    <input type="hidden" name="action" value="add">
+                    <div class="mb-3">
+                        <label class="form-label">Назва локації</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Напр. Шафа 1, Стелаж А">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Додати</button>
+                </form>
+                <p class="mt-2 text-muted small mb-0">
+                    Назви мають бути унікальні (наприклад, «Шафа 1», «Стелаж B» тощо).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Список локацій</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Назва</th>
+                            <th class="text-end">Дії</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for l in locations %}
+                            <tr>
+                                <td>{{ l.id }}</td>
+                                <td>
+                                    <form method="post" class="d-flex gap-2">
+                                        <input type="hidden" name="action" value="edit">
+                                        <input type="hidden" name="location_id" value="{{ l.id }}">
+                                        <input type="text" name="name"
+                                               value="{{ l.name }}"
+                                               class="form-control form-control-sm">
+                                </td>
+                                <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                Зберегти
+                                            </button>
+                                    </form>
+                                            <form method="post"
+                                                  action="{{ url_for('delete_location', location_id=l.id) }}"
+                                                  onsubmit="return confirm('Видалити локацію? Можна лише якщо до неї не привʼязані ємності.');">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    Видалити
+                                                </button>
+                                            </form>
+                                        </div>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">
+                                    Локації ще не створені.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0">
+                    Видалити можна тільки ті локації, до яких не привʼязані ємності.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Пакетний друк QR{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3 d-flex justify-content-between align-items-end">
+    <div>
+        <h1 class="h4 mb-1">Пакетний друк QR-кодів</h1>
+        <small class="text-muted">Друк етикеток для ємностей</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Локація (шафа/стелаж)</label>
+                <select name="location_id" class="form-select">
+                    <option value="">-- Оберіть локацію --</option>
+                    {% for l in locations %}
+                        <option value="{{ l.id }}"
+                            {% if selected_location_id and selected_location_id == l.id %}selected{% endif %}>
+                            {{ l.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">
+                    Для зручності друку зазвичай обирають одну шафу.
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Розмір QR</label>
+                <select name="size" class="form-select">
+                    <option value="small" {% if size == 'small' %}selected{% endif %}>Малий (наклейки)</option>
+                    <option value="medium" {% if size == 'medium' %}selected{% endif %}>Середній</option>
+                    <option value="large" {% if size == 'large' %}selected{% endif %}>Великий</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    Показати етикетки
+                </button>
+                {% if containers %}
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        Друк (Ctrl+P)
+                    </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if containers is not none %}
+    {% if containers %}
+        <style>
+            .qr-sheet {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 12px;
+            }
+            .qr-card {
+                background-color: #fff;
+                border-radius: 0.75rem;
+                border: 1px solid rgba(0,0,0,0.08);
+                padding: 6px;
+                text-align: center;
+                font-size: 11px;
+            }
+            .qr-card strong {
+                font-size: 11px;
+            }
+            .qr-img-small {
+                width: 60px;
+            }
+            .qr-img-medium {
+                width: 90px;
+            }
+            .qr-img-large {
+                width: 130px;
+            }
+            @media print {
+                body {
+                    background: #fff !important;
+                }
+                nav, form, .page-header {
+                    display: none !important;
+                }
+                main.container {
+                    max-width: 100%;
+                    padding: 0;
+                    margin: 0;
+                }
+                .qr-sheet {
+                    gap: 6px;
+                }
+                .qr-card {
+                    border-radius: 0;
+                    border: 1px solid #000;
+                    page-break-inside: avoid;
+                }
+            }
+        </style>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted small">
+                        Знайдено ємностей: {{ containers|length }}.
+                        Натисніть «Друк» або Ctrl+P у браузері.
+                    </div>
+                </div>
+                <div class="qr-sheet">
+                    {% for c in containers %}
+                        <div class="qr-card">
+                            <img src="{{ url_for('container_qr', container_id=c.id) }}"
+                                 alt="QR"
+                                 class="qr-img-{{ size }}">
+                            <div class="mt-1">
+                                <strong>{{ c.material_code }}</strong><br>
+                                {{ c.material_name }}<br>
+                                <span class="text-muted">Локація: {{ c.location_name }}</span><br>
+                                <span class="text-muted">ID ємн.: {{ c.id }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            У вибраній локації поки немає ємностей для друку.
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

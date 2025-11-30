@@ -1,0 +1,66 @@
+# Чекліст запуску: сервер З ІНТЕРНЕТОМ (через Docker Hub)
+
+## 0. Підготовка на локальному ПК (ЗРОБИТИ ОДИН РАЗ)
+
+1. Зібрати образ (якщо ще не зібраний)
+
+    cd /path/to/workshop-app
+    docker build -t workshop-app:1 .
+
+2. Увійти в Docker Hub
+
+    docker login
+
+3. Перейменувати образ під свій акаунт (YOURNAME — ваш логін на Docker Hub)
+
+    docker tag workshop-app:1 YOURNAME/workshop-app:1
+
+4. Відправити образ у Docker Hub
+
+    docker push YOURNAME/workshop-app:1
+
+
+## 1. Дії на сервері (з інтернетом)
+
+1. Встановити Docker (Ubuntu / Debian)
+
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo systemctl enable docker
+    sudo systemctl start docker
+
+2. Запустити контейнер з образом з Docker Hub
+
+    sudo docker run -d \
+      --name workshop-app \
+      -p 8000:8000 \
+      --restart unless-stopped \
+      YOURNAME/workshop-app:1
+
+3. Відкрити в браузері
+
+    http://IP_СЕРВЕРА:8000
+
+
+## 2. Корисні команди на сервері
+
+Подивитися запущені контейнери:
+
+    sudo docker ps
+
+Переглянути логи застосунку:
+
+    sudo docker logs -f workshop-app
+
+Зупинити контейнер:
+
+    sudo docker stop workshop-app
+
+Запустити контейнер знову:
+
+    sudo docker start workshop-app
+
+Видалити контейнер (ДАНІ всередині контейнера буде втрачено):
+
+    sudo docker stop workshop-app
+    sudo docker rm workshop-app

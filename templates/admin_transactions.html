@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Журнал операцій{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <h1 class="h4 mb-1">Журнал операцій</h1>
+    <small>Перегляд списань і приходів із фільтрами</small>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Фільтри</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Працівник</label>
+                <select name="worker_id" class="form-select">
+                    <option value="">-- Всі --</option>
+                    {% for w in workers %}
+                        <option value="{{ w.id }}"
+                            {% if selected_worker_id and selected_worker_id == w.id %}selected{% endif %}>
+                            {{ w.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Матеріал</label>
+                <select name="material_id" class="form-select">
+                    <option value="">-- Всі --</option>
+                    {% for m in materials %}
+                        <option value="{{ m.id }}"
+                            {% if selected_material_id and selected_material_id == m.id %}selected{% endif %}>
+                            {{ m.code }} – {{ m.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Тип</label>
+                <select name="direction" class="form-select">
+                    <option value="">-- Всі --</option>
+                    <option value="IN" {% if filters.direction == 'IN' %}selected{% endif %}>Прихід (IN)</option>
+                    <option value="OUT" {% if filters.direction == 'OUT' %}selected{% endif %}>Списання (OUT)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Дата з</label>
+                <input type="date" name="date_from" value="{{ filters.date_from or '' }}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Дата по</label>
+                <input type="date" name="date_to" value="{{ filters.date_to or '' }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Пошук (коментар, матеріал, працівник, локація)</label>
+                <input type="text" name="q" value="{{ filters.q or '' }}" class="form-control">
+            </div>
+            <div class="col-md-3 d-flex align-items-center">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" name="storno" value="1"
+                           id="stornoCheck" {% if filters.storno_only %}checked{% endif %}>
+                    <label class="form-check-label" for="stornoCheck">
+                        Тільки сторно-операції
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-5 d-flex align-items-end justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Застосувати</button>
+                <a href="{{ url_for('admin_transactions') }}" class="btn btn-outline-secondary">Очистити</a>
+                <a href="{{ url_for('export_transactions_csv',
+                                     worker_id=filters.worker_id,
+                                     material_id=filters.material_id,
+                                     direction=filters.direction,
+                                     date_from=filters.date_from,
+                                     date_to=filters.date_to,
+                                     q=filters.q,
+                                     storno=1 if filters.storno_only else None) }}"
+                   class="btn btn-outline-success">
+                    Експорт у CSV
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0">Список операцій (сторінка {{ page }})</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th>Дата/час (локальний)</th>
+                    <th>Тип</th>
+                    <th>Працівник</th>
+                    <th>Матеріал</th>
+                    <th class="text-end">Кількість</th>
+                    <th>Локація</th>
+                    <th>Замовлення / робота / коментар</th>
+                    <th>Дія</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.created_at|localtime }}</td>
+                        <td>
+                            {% if t.direction == 'IN' %}
+                                <span class="badge text-bg-success">Прихід</span>
+                            {% else %}
+                                <span class="badge text-bg-danger">Списання</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ t.worker_name or '' }}</td>
+                        <td>{{ t.material_code }} – {{ t.material_name }} ({{ t.material_unit }})</td>
+                        <td class="text-end">
+                            {% if t.direction == 'OUT' %}-{% else %}+{% endif %}
+                            {{ t.qty }}
+                        </td>
+                        <td>{{ t.location_name }}</td>
+                        <td>{{ t.job or '' }}</td>
+                        <td>
+                            <form method="post"
+                                  action="{{ url_for('reverse_transaction', tx_id=t.id) }}"
+                                  onsubmit="return confirm('Створити сторно для цієї операції?');">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    Сторно
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">Операцій ще немає.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between mt-2">
+            <div>
+                {% if page > 1 %}
+                    <a href="{{ url_for('admin_transactions',
+                                        page=page-1,
+                                        worker_id=filters.worker_id,
+                                        material_id=filters.material_id,
+                                        direction=filters.direction,
+                                        date_from=filters.date_from,
+                                        date_to=filters.date_to,
+                                        q=filters.q,
+                                        storno=1 if filters.storno_only else None) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        ← Попередня
+                    </a>
+                {% endif %}
+            </div>
+            <div>
+                {% if has_next %}
+                    <a href="{{ url_for('admin_transactions',
+                                        page=page+1,
+                                        worker_id=filters.worker_id,
+                                        material_id=filters.material_id,
+                                        direction=filters.direction,
+                                        date_from=filters.date_from,
+                                        date_to=filters.date_to,
+                                        q=filters.q,
+                                        storno=1 if filters.storno_only else None) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        Наступна →
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

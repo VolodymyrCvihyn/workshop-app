@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  workshop_app:
+    build: .
+    container_name: workshop_app
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=some-super-secret-key
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=strong_password_here
+      - TIMEZONE=Europe/Kyiv
+      - DB_PATH=/data/db.sqlite
+      - LOG_PATH=/logs/app.log
+    volumes:
+      - ./data:/data
+      - ./logs:/logs

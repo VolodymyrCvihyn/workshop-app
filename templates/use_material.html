@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Списання матеріалу{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h1 class="h5 mb-3">Списання матеріалу</h1>
+
+                <div class="mb-2">
+                    <div class="fw-semibold">
+                        {{ container.material_code }} – {{ container.material_name }} ({{ container.material_unit }})
+                    </div>
+                    <div class="text-muted small">
+                        Локація: {{ container.location_name }}
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Залишок у цій ємності:
+                        <strong>{{ container.balance }}</strong> {{ container.material_unit }}
+                        {% if container.min_balance is not none %}
+                            (мін. {{ container.min_balance }} {{ container.material_unit }})
+                        {% endif %}
+                    </div>
+                    {% if container.min_balance is not none and container.balance < container.min_balance %}
+                        <div class="text-danger small">
+                            Увага: залишок нижче мінімального!
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if current_worker %}
+                    <div class="alert alert-info py-2 small">
+                        Ви увійшли як: <strong>{{ current_worker.name }}</strong>.<br>
+                        Списання буде автоматично привʼязане до цього працівника.
+                    </div>
+                {% endif %}
+
+                <hr>
+
+                <form method="post" id="use-form">
+                    {% if not current_worker %}
+                        <div class="mb-3">
+                            <label class="form-label">Працівник (зі списку)</label>
+                            <select name="worker_id" id="worker-select" class="form-select">
+                                <option value="">-- Оберіть працівника --</option>
+                                {% for w in workers %}
+                                    <option value="{{ w.id }}">{{ w.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                При постійній роботі з одного телефону — працівник запамʼятовується.
+                            </div>
+                        </div>
+
+                        <div class="text-center text-muted small mb-2">або</div>
+
+                        <div class="mb-3">
+                            <label class="form-label">PIN працівника (якщо налаштовано)</label>
+                            <input type="text" name="pin" id="worker-pin" class="form-control" placeholder="Напр. 1234">
+                        </div>
+                    {% else %}
+                        <p class="text-muted small">
+                            Щоб використовувати інший обліковий запис, натисніть «Вийти» у верхньому меню,
+                            потім увійдіть під іншим логіном.
+                        </p>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Кількість (у {{ container.material_unit }})</label>
+                        <div class="input-group mb-2">
+                            <input type="number" step="0.01" min="0" name="qty" id="qty-input"
+                                   class="form-control" required>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-qty-adjust="-1">-1</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-qty-adjust="-0.1">-0.1</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-qty-adjust="+0.1">+0.1</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-qty-adjust="+1">+1</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Замовлення / робота (необовʼязково)</label>
+                        <input type="text" name="job" class="form-control" placeholder="Номер замовлення, короткий опис…">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">Списати</button>
+                </form>
+
+                {% if not current_worker %}
+                    <p class="text-muted small mt-3 mb-0">
+                        Щоб не обирати себе зі списку кожен раз, начальник зміни може створити вам логін,
+                        після чого просто увійдіть у систему перед роботою.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const workerSelect = document.getElementById('worker-select');
+    const form = document.getElementById('use-form');
+    const qtyInput = document.getElementById('qty-input');
+
+    if (workerSelect) {
+        const lastWorkerId = localStorage.getItem('lastWorkerId');
+        if (lastWorkerId) {
+            for (const opt of workerSelect.options) {
+                if (opt.value === lastWorkerId) {
+                    workerSelect.value = lastWorkerId;
+                    break;
+                }
+            }
+        }
+
+        form.addEventListener('submit', function() {
+            const val = workerSelect.value;
+            if (val) {
+                localStorage.setItem('lastWorkerId', val);
+            }
+        });
+    }
+
+    if (qtyInput) {
+        document.querySelectorAll('[data-qty-adjust]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const delta = parseFloat(btn.getAttribute('data-qty-adjust'));
+                let current = parseFloat((qtyInput.value || "0").replace(',', '.')) || 0;
+                current = current + delta;
+                if (current < 0) current = 0;
+                qtyInput.value = current.toFixed(2);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

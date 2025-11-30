@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Майстерня{% endblock %} · Облік матеріалів</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f5f7; }
+        .navbar-brand { font-weight: 600; }
+        .page-header { border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: .5rem; }
+        .card { border-radius: 0.75rem; }
+        .accordion-button:not(.collapsed) { background-color: #e9ecef; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Майстерня</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-controls="mainNav" aria-expanded="false" aria-label="Перемкнути навігацію">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            {% if session.get('is_admin') %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_index') }}">Дашборд</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_search') }}">Пошук</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_materials') }}">Матеріали</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_locations') }}">Локації</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_workers') }}">Працівники</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_containers') }}">Ємності</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="stockDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Прихід
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="stockDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_material_in') }}">Прихід матеріалу (розподіл)</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_stock') }}">Прихід в ємності</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_summary') }}">Залишки</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Звіти
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('report_workers') }}">За працівниками</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('report_materials') }}">За матеріалами</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_transactions') }}">Журнал</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_account') }}">Мій акаунт</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-light small d-none d-md-inline">
+                        {{ session.get('username') }}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Вийти</a>
+                </div>
+            {% elif session.get('user_id') %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <span class="nav-link disabled">Ви: {{ session.get('username') }}</span>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Вийти</a>
+                </div>
+            {% else %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
+                <div class="d-flex">
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Увійти</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<main class="container my-3">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            <div class="mb-3">
+                {% for category, message in messages %}
+                    {% set bs_cat = 'danger' if category == 'error' else category %}
+                    <div class="alert alert-{{ bs_cat }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

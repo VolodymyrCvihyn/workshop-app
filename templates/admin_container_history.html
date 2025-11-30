@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Історія ємності{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3 d-flex justify-content-between align-items-end">
+    <div>
+        <h1 class="h4 mb-1">Історія ємності #{{ container.container_id }}</h1>
+        <small>
+            {{ container.material_code }} – {{ container.material_name }} ({{ container.material_unit }}),
+            локація: {{ container.location_name }}
+        </small>
+        <div class="text-muted small">
+            Поточний залишок:
+            <strong>{{ container.balance }}</strong> {{ container.material_unit }}
+            {% if container.min_balance is not none %}
+                (мін. {{ container.min_balance }} {{ container.material_unit }})
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin_containers') }}" class="btn btn-outline-secondary btn-sm">
+            ← До ємностей
+        </a>
+        <a href="{{ url_for('export_container_history',
+                             container_id=container.container_id,
+                             date_from=filters.date_from,
+                             date_to=filters.date_to,
+                             direction=filters.direction,
+                             worker_id=filters.worker_id) }}"
+           class="btn btn-outline-success btn-sm">
+            Експорт у CSV
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Фільтри</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Дата з</label>
+                <input type="date" name="date_from" value="{{ filters.date_from or '' }}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Дата по</label>
+                <input type="date" name="date_to" value="{{ filters.date_to or '' }}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Тип</label>
+                <select name="direction" class="form-select">
+                    <option value="">-- Всі --</option>
+                    <option value="IN" {% if filters.direction == 'IN' %}selected{% endif %}>Прихід (IN)</option>
+                    <option value="OUT" {% if filters.direction == 'OUT' %}selected{% endif %}>Списання (OUT)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Працівник</label>
+                <select name="worker_id" class="form-select">
+                    <option value="">-- Всі --</option>
+                    {% for w in workers %}
+                        <option value="{{ w.id }}"
+                            {% if selected_worker_id and selected_worker_id == w.id %}selected{% endif %}>
+                            {{ w.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Застосувати</button>
+                <a href="{{ url_for('container_history', container_id=container.container_id) }}"
+                   class="btn btn-outline-secondary">Очистити</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Операції по ємності</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th>Дата/час (локальний)</th>
+                    <th>Тип</th>
+                    <th>Працівник</th>
+                    <th class="text-end">Кількість</th>
+                    <th>Замовлення / робота / коментар</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for t in history_rows %}
+                    <tr>
+                        <td>{{ t.created_at|localtime }}</td>
+                        <td>
+                            {% if t.direction == 'IN' %}
+                                <span class="badge text-bg-success">Прихід</span>
+                            {% else %}
+                                <span class="badge text-bg-danger">Списання</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ t.worker_name or '' }}</td>
+                        <td class="text-end">
+                            {% if t.direction == 'OUT' %}-{% else %}+{% endif %}
+                            {{ t.qty }}
+                        </td>
+                        <td>{{ t.job or '' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Операцій за вказаний період немає.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

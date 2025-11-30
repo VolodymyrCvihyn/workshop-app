@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Прихід матеріалів{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <h1 class="h4 mb-1">Прихід матеріалів</h1>
+    <small>Фіксація поповнення ємностей (IN)</small>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Додати прихід</h5>
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Пошук ємності</label>
+                        <input type="text" id="container-search" class="form-control"
+                               placeholder="Введіть частину коду, назви або локації">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ємність (матеріал + локація)</label>
+                        <select name="container_id" id="container-select" class="form-select" required>
+                            <option value="">-- Оберіть ємність --</option>
+                            {% for c in containers %}
+                                <option value="{{ c.id }}">
+                                    {{ c.material_code }} – {{ c.material_name }} ({{ c.material_unit }}),
+                                    {{ c.location_name }}
+                                    — залишок: {{ c.balance }} {{ c.material_unit }}
+                                    {% if c.min_balance is not none %}
+                                        (мін: {{ c.min_balance }} {{ c.material_unit }})
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Кількість приходу</label>
+                        <input type="number" step="0.01" min="0" name="qty"
+                               class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Коментар / накладна / постачальник (необовʼязково)</label>
+                        <input type="text" name="job" class="form-control"
+                               placeholder="Номер накладної, постачальник…">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Зберегти прихід</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Поточні залишки по ємностях</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Матеріал</th>
+                            <th>Локація</th>
+                            <th class="text-end">Залишок</th>
+                            <th class="text-end">Мін. залишок</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for c in containers %}
+                            {% set is_low = c.min_balance is not none and c.balance < c.min_balance %}
+                            <tr class="{% if is_low %}table-danger{% endif %}">
+                                <td>{{ c.id }}</td>
+                                <td>{{ c.material_code }} – {{ c.material_name }} ({{ c.material_unit }})</td>
+                                <td>{{ c.location_name }}</td>
+                                <td class="text-end">{{ c.balance }} {{ c.material_unit }}</td>
+                                <td class="text-end">
+                                    {% if c.min_balance is not none %}
+                                        {{ c.min_balance }} {{ c.material_unit }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    Ємності ще не створено.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0">
+                    Якщо рядок червоний — залишок нижче мінімального, треба поповнити.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('container-search');
+    const select = document.getElementById('container-select');
+    if (!searchInput || !select) return;
+
+    const allOptions = Array.from(select.options);
+
+    searchInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        const currentValue = select.value;
+
+        // Очищаємо список, додаємо назад тільки ті, що підходять
+        select.innerHTML = '';
+        allOptions.forEach(function(opt, index) {
+            if (index === 0) {
+                // перший елемент "-- Оберіть ємність --"
+                select.appendChild(opt);
+                return;
+            }
+            if (!term || opt.text.toLowerCase().includes(term)) {
+                select.appendChild(opt);
+            }
+        });
+
+        // Якщо попередньо обраний варіант ще є — залишаємо вибраним
+        for (const opt of select.options) {
+            if (opt.value === currentValue) {
+                select.value = currentValue;
+                break;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
