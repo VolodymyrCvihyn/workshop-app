@@ -3,100 +3,81 @@
 {% block title %}Матеріали{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Матеріали</h1>
-    <small class="text-muted">Номенклатура матеріалів майстерні</small>
+<h1>Матеріали</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Додати матеріал</h2>
+    <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div style="margin-bottom:8px;">
+            <label>Назва</label><br>
+            <input type="text" name="name" required style="min-width:250px;">
+        </div>
+        <div style="margin-bottom:8px;">
+            <label>Одиниця виміру</label><br>
+            <input type="text" name="unit" required placeholder="шт, кг, м, л ...">
+        </div>
+        <p class="muted">
+            Код матеріалу буде призначено автоматично як наступний порядковий номер.
+        </p>
+        <button class="btn btn-primary" type="submit">Додати матеріал</button>
+    </form>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Додати матеріал</h5>
-                <form method="post">
-                    <input type="hidden" name="action" value="add">
-                    <div class="mb-3">
-                        <label class="form-label">Назва</label>
-                        <input type="text" name="name" class="form-control" required placeholder="Напр. Кабель 3×2.5">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Одиниця виміру</label>
-                        <input type="text" name="unit" class="form-control" required placeholder="м, кг, шт…">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Додати</button>
-                </form>
-                <p class="mt-2 text-muted small mb-0">
-                    Код матеріалу буде призначено автоматично (порядковий номер).
-                </p>
-            </div>
-        </div>
-    </div>
+<div class="card">
+    <h2 style="margin-top:0;">Список матеріалів</h2>
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Список матеріалів</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead>
-                        <tr>
-                            <th>Код</th>
-                            <th>Назва</th>
-                            <th>Од. виміру</th>
-                            <th class="text-end">Дії</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for m in materials %}
-                            <tr>
-                                <td>
-                                    <span class="badge text-bg-secondary">{{ m.code }}</span>
-                                </td>
-                                <td>
-                                    <form method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="action" value="edit">
-                                        <input type="hidden" name="material_id" value="{{ m.id }}">
-                                        <input type="text" name="name"
-                                               value="{{ m.name }}"
-                                               class="form-control form-control-sm">
-                                </td>
-                                <td>
-                                        <input type="text" name="unit"
-                                               value="{{ m.unit }}"
-                                               class="form-control form-control-sm"
-                                               style="max-width: 80px;">
-                                </td>
-                                <td class="text-end">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                Зберегти
-                                            </button>
-                                    </form>
-                                            <form method="post"
-                                                  action="{{ url_for('delete_material', material_id=m.id) }}"
-                                                  onsubmit="return confirm('Видалити матеріал? Можна лише якщо він не використовується в ємностях.');">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                    Видалити
-                                                </button>
-                                            </form>
-                                        </div>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">
-                                    Матеріали ще не створені.
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mb-0">
-                    Видалити можна тільки ті матеріали, які не привʼязані до жодної ємності.
-                </p>
-            </div>
+    {% if not materials %}
+        <p class="muted">Ще не додано жодного матеріалу.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Код</th>
+                    <th>Назва</th>
+                    <th>Од. виміру</th>
+                    <th>Ємності</th>
+                    <th>Дії</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for m in materials %}
+                    <tr>
+                        <td>{{ m.id }}</td>
+                        <td>{{ m.code }}</td>
+                        <td>
+                            <!-- Редагування назви + одиниці -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="material_id" value="{{ m.id }}">
+                                <input type="text" name="name" value="{{ m.name }}" style="min-width:220px;">
+                        </td>
+                        <td>
+                                <input type="text" name="unit" value="{{ m.unit }}" style="width:80px;">
+                                <button class="btn btn-secondary btn-sm" type="submit">Зберегти</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('goto_material_containers', material_id=m.id) }}">
+                                Ємності матеріалу
+                            </a>
+                        </td>
+                        <td>
+                            <form method="post"
+                                  class="inline"
+                                  action="{{ url_for('delete_material', material_id=m.id) }}"
+                                  onsubmit="return confirm('Видалити матеріал {{ m.code }} - {{ m.name }}?\\nБудуть видалені всі його ємності та повʼязані операції.');">
+                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

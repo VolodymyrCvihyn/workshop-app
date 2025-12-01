@@ -3,138 +3,108 @@
 {% block title %}Працівники{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Працівники</h1>
-    <small class="text-muted">Список людей та їх облікові записи для списання матеріалів</small>
+<h1>Працівники</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Додати працівника</h2>
+    <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div style="margin-bottom:8px;">
+            <label for="name">Імʼя / прізвище</label><br>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div style="margin-bottom:8px;">
+            <label for="pin">PIN (необовʼязково)</label><br>
+            <input type="text" id="pin" name="pin" placeholder="Наприклад, 1234">
+            <div class="muted">PIN можна використовувати для швидкого вибору працівника при списанні.</div>
+        </div>
+        <button class="btn btn-primary" type="submit">Додати</button>
+    </form>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Додати працівника</h5>
-                <form method="post">
-                    <input type="hidden" name="action" value="add">
-                    <div class="mb-3">
-                        <label class="form-label">Імʼя / прізвище</label>
-                        <input type="text" name="name" class="form-control" required placeholder="Напр. Іван Петров">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">PIN (необовʼязково)</label>
-                        <input type="text" name="pin" class="form-control" placeholder="Напр. 1234">
-                        <div class="form-text">
-                            PIN дозволяє швидко ідентифікувати працівника при списанні без логіну.
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Додати</button>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="card">
+    <h2 style="margin-top:0;">Список працівників</h2>
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Список працівників</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Імʼя</th>
-                            <th>PIN</th>
-                            <th>Обліковий запис</th>
-                            <th class="text-end">Дії</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for w in workers %}
-                            <tr>
-                                <td>{{ w.id }}</td>
-                                <td>
-                                    <form method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="action" value="edit_name">
-                                        <input type="hidden" name="worker_id" value="{{ w.id }}">
-                                        <input type="text" name="name"
-                                               value="{{ w.name }}"
-                                               class="form-control form-control-sm">
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                            Зберегти
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    <form method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="action" value="update_pin">
-                                        <input type="hidden" name="worker_id" value="{{ w.id }}">
-                                        <input type="text" name="pin"
-                                               value="{{ w.pin or '' }}"
-                                               class="form-control form-control-sm"
-                                               style="max-width: 90px;">
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                            OK
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    {% if w.username %}
-                                        <div class="small mb-1">
-                                            Логін: <strong>{{ w.username }}</strong>
-                                        </div>
-                                        <form method="post" class="d-flex gap-2">
-                                            <input type="hidden" name="action" value="change_user_password">
-                                            <input type="hidden" name="worker_id" value="{{ w.id }}">
-                                            <input type="password" name="password"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Новий пароль">
-                                            <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                                Оновити пароль
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <form method="post" class="d-flex flex-column flex-sm-row gap-2">
-                                            <input type="hidden" name="action" value="create_user">
-                                            <input type="hidden" name="worker_id" value="{{ w.id }}">
-                                            <input type="text" name="username"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Логін">
-                                            <input type="password" name="password"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Пароль">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                Створити
-                                            </button>
-                                        </form>
-                                        <div class="text-muted small mt-1">
-                                            Щоб працівник міг входити під логіном і списувати матеріал без вибору зі списку.
-                                        </div>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <form method="post"
-                                          action="{{ url_for('delete_worker', worker_id=w.id) }}"
-                                          onsubmit="return confirm('Видалити працівника? Можна лише якщо по ньому немає операцій.');">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            Видалити
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">
-                                    Працівників ще не додано.
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mb-0">
-                    Видалити можна тільки тих працівників, по яких немає операцій в журналі.
-                </p>
-            </div>
+    {% if not workers %}
+        <p class="muted">Ще не додано жодного працівника.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Імʼя</th>
+                    <th>PIN</th>
+                    <th>Логін</th>
+                    <th>Операції</th>
+                    <th>Дії</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for w in workers %}
+                    <tr>
+                        <td>{{ w.id }}</td>
+                        <td>
+                            <!-- Редагування імені -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="edit_name">
+                                <input type="hidden" name="worker_id" value="{{ w.id }}">
+                                <input type="text" name="name" value="{{ w.name }}" style="min-width:140px;">
+                                <button class="btn btn-secondary btn-sm" type="submit">Зберегти</button>
+                            </form>
+                        </td>
+                        <td>
+                            <!-- Оновлення PIN -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="update_pin">
+                                <input type="hidden" name="worker_id" value="{{ w.id }}">
+                                <input type="text" name="pin" value="{{ w.pin or '' }}" style="width:80px;">
+                                <button class="btn btn-secondary btn-sm" type="submit">OK</button>
+                            </form>
+                        </td>
+                        <td>
+                            {% if w.username %}
+                                <div>
+                                    <span>{{ w.username }}</span>
+                                </div>
+                                <!-- Зміна пароля -->
+                                <form method="post" class="inline" style="margin-top:4px;">
+                                    <input type="hidden" name="action" value="change_user_password">
+                                    <input type="hidden" name="worker_id" value="{{ w.id }}">
+                                    <input type="password" name="password" placeholder="Новий пароль" style="width:120px;">
+                                    <button class="btn btn-secondary btn-sm" type="submit">Змінити пароль</button>
+                                </form>
+                            {% else %}
+                                <!-- Створення логіну -->
+                                <form method="post" class="inline" style="margin:0;">
+                                    <input type="hidden" name="action" value="create_user">
+                                    <input type="hidden" name="worker_id" value="{{ w.id }}">
+                                    <input type="text" name="username" placeholder="Логін" style="width:110px;">
+                                    <input type="password" name="password" placeholder="Пароль" style="width:110px;">
+                                    <button class="btn btn-primary btn-sm" type="submit">Створити</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('goto_worker_transactions', worker_id=w.id) }}">
+                                Журнал операцій
+                            </a>
+                        </td>
+                        <td>
+                            <!-- Видалення працівника -->
+                            <form method="post"
+                                  class="inline"
+                                  action="{{ url_for('delete_worker', worker_id=w.id) }}"
+                                  onsubmit="return confirm('Видалити працівника {{ w.name }}? Операції залишаться, але без привʼязки до нього.');">
+                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

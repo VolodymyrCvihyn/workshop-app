@@ -3,181 +3,162 @@
 {% block title %}Ємності{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3 d-flex justify-content-between align-items-end">
-    <div>
-        <h1 class="h4 mb-1">Ємності</h1>
-        <small class="text-muted">Звʼязок матеріалів, шаф та QR-кодів</small>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('print_qr') }}" class="btn btn-outline-secondary btn-sm">
-            Пакетний друк QR
-        </a>
-    </div>
+<h1>Ємності</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Фільтр</h2>
+    <form method="get" class="toolbar">
+        <div>
+            <label>Локація</label><br>
+            <select name="location_id" onchange="this.form.submit()">
+                <option value="">(усі)</option>
+                {% for loc in locations %}
+                    <option value="{{ loc.id }}"
+                        {% if selected_location_id == loc.id %}selected{% endif %}>
+                        {{ loc.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Матеріал</label><br>
+            <select name="material_id" onchange="this.form.submit()">
+                <option value="">(усі)</option>
+                {% for m in materials %}
+                    <option value="{{ m.id }}"
+                        {% if selected_material_id == m.id %}selected{% endif %}>
+                        {{ m.code }} – {{ m.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Пошук</label><br>
+            <input type="text" name="q" value="{{ search_q or '' }}" placeholder="код, назва, локація">
+            <button class="btn btn-secondary btn-sm" type="submit">Застосувати</button>
+        </div>
+        <div class="toolbar-right">
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('print_qr') }}">
+                Пакетний друк QR-кодів
+            </a>
+        </div>
+    </form>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Створити ємність</h5>
-                <form method="post">
-                    <input type="hidden" name="action" value="add">
-                    <div class="mb-3">
-                        <label class="form-label">Матеріал</label>
-                        <select name="material_id" class="form-select" required>
-                            <option value="">-- Оберіть матеріал --</option>
-                            {% for m in materials %}
-                                <option value="{{ m.id }}">{{ m.code }} – {{ m.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Локація (шафа/стелаж)</label>
-                        <select name="location_id" class="form-select" required>
-                            <option value="">-- Оберіть локацію --</option>
-                            {% for l in locations %}
-                                <option value="{{ l.id }}">{{ l.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Мінімальний залишок (опційно)</label>
-                        <input type="number" step="0.01" name="min_balance" class="form-control" placeholder="Напр. 10">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Створити ємність</button>
-                </form>
-                <p class="mt-2 text-muted small mb-0">
-                    Після створення — надрукуйте QR-код та наклейте його на відповідну ємність.
-                </p>
+<div class="card">
+    <h2 style="margin-top:0;">Додати ємність</h2>
+    <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+            <div>
+                <label>Матеріал</label><br>
+                <select name="material_id" required>
+                    <option value="">Оберіть матеріал</option>
+                    {% for m in materials %}
+                        <option value="{{ m.id }}">{{ m.code }} – {{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Локація</label><br>
+                <select name="location_id" required>
+                    <option value="">Оберіть локацію</option>
+                    {% for loc in locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Мінімальний залишок (необовʼязково)</label><br>
+                <input type="text" name="min_balance" placeholder="наприклад, 5.0">
+            </div>
+            <div>
+                <button class="btn btn-primary" type="submit">Додати ємність</button>
             </div>
         </div>
-    </div>
+        <p class="muted" style="margin-top:8px;">
+            QR-код буде згенеровано автоматично. Ви зможете надрукувати його для наклейки.
+        </p>
+    </form>
+</div>
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Список ємностей</h5>
+<div class="card">
+    <h2 style="margin-top:0;">Список ємностей</h2>
 
-                <form method="get" class="row g-2 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Локація</label>
-                        <select name="location_id" class="form-select">
-                            <option value="">-- Всі локації --</option>
-                            {% for l in locations %}
-                                <option value="{{ l.id }}"
-                                    {% if selected_location_id and selected_location_id == l.id %}selected{% endif %}>
-                                    {{ l.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Пошук (код/назва/локація)</label>
-                        <input type="text" name="q" value="{{ search_q or '' }}" class="form-control">
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end justify-content-end gap-2">
-                        <button type="submit" class="btn btn-primary">Фільтрувати</button>
-                        <a href="{{ url_for('admin_containers') }}" class="btn btn-outline-secondary">Скинути</a>
-                        {% if selected_location_id %}
-                            <a href="{{ url_for('print_qr', location_id=selected_location_id) }}"
-                               class="btn btn-outline-secondary">
-                                Друк QR для локації
+    {% if not containers %}
+        <p class="muted">За вибраним фільтром ємностей немає.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Матеріал</th>
+                    <th>Локація</th>
+                    <th>Залишок</th>
+                    <th>Мін. залишок</th>
+                    <th>QR</th>
+                    <th>Дії</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for c in containers %}
+                    <tr class="{% if c.min_balance is not none and c.balance < c.min_balance %}low-stock{% endif %}">
+                        <td>{{ c.id }}</td>
+                        <td>
+                            {{ c.material_code }} – {{ c.material_name }}
+                            <div class="muted">{{ c.material_unit }}</div>
+                        </td>
+                        <td>
+                            <!-- Оновлення локації -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="update_location">
+                                <input type="hidden" name="container_id" value="{{ c.id }}">
+                                <select name="location_id" onchange="this.form.submit()">
+                                    {% for loc in locations %}
+                                        <option value="{{ loc.id }}"
+                                            {% if loc.id == c.location_id %}selected{% endif %}>
+                                            {{ loc.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>{{ '%.3f'|format(c.balance|float) }}</td>
+                        <td>
+                            <!-- Оновлення мін. залишку -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="update_min">
+                                <input type="hidden" name="container_id" value="{{ c.id }}">
+                                <input type="text" name="min_balance"
+                                       value="{% if c.min_balance is not none %}{{ '%.3f'|format(c.min_balance|float) }}{% endif %}"
+                                       style="width:80px;">
+                                <button class="btn btn-secondary btn-sm" type="submit">OK</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('container_qr', container_id=c.id) }}" target="_blank"
+                               class="btn btn-secondary btn-sm">
+                                QR-код
                             </a>
-                        {% endif %}
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Матеріал</th>
-                            <th>Локація</th>
-                            <th class="text-end">Залишок</th>
-                            <th class="text-end">Мін. залишок</th>
-                            <th>QR-код</th>
-                            <th class="text-end">Дії</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for c in containers %}
-                            {% set is_low = c.min_balance is not none and c.balance < c.min_balance %}
-                            <tr class="{% if is_low %}table-danger{% endif %}">
-                                <td>{{ c.id }}</td>
-                                <td>{{ c.material_code }} – {{ c.material_name }} ({{ c.material_unit }})</td>
-                                <td>
-                                    <div class="small mb-1">{{ c.location_name }}</div>
-                                    <form method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="action" value="update_location">
-                                        <input type="hidden" name="container_id" value="{{ c.id }}">
-                                        <select name="location_id"
-                                                class="form-select form-select-sm"
-                                                style="max-width: 140px;">
-                                            {% for l in locations %}
-                                                <option value="{{ l.id }}"
-                                                    {% if l.id == c.location_id %}selected{% endif %}>
-                                                    {{ l.name }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                            OK
-                                        </button>
-                                    </form>
-                                </td>
-                                <td class="text-end">{{ c.balance }} {{ c.material_unit }}</td>
-                                <td class="text-end">
-                                    <form method="post" class="d-flex gap-2 justify-content-end">
-                                        <input type="hidden" name="action" value="update_min">
-                                        <input type="hidden" name="container_id" value="{{ c.id }}">
-                                        <input type="number" step="0.01" name="min_balance"
-                                               value="{{ c.min_balance if c.min_balance is not none else '' }}"
-                                               class="form-control form-control-sm"
-                                               style="max-width: 90px;">
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                            OK
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    <img src="{{ url_for('container_qr', container_id=c.id) }}"
-                                         alt="QR" class="img-fluid" style="max-width: 120px;">
-                                    <div class="text-muted small mt-1">
-                                        {{ c.material_code }} – {{ c.material_name }}<br>
-                                        {{ c.location_name }}
-                                    </div>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <a href="{{ url_for('container_history', container_id=c.id) }}"
-                                           class="btn btn-outline-secondary btn-sm">
-                                            Історія
-                                        </a>
-                                        <form method="post"
-                                              action="{{ url_for('delete_container', container_id=c.id) }}"
-                                              onsubmit="return confirm('Видалити цю ємність? Можна лише якщо по ній немає операцій.');">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                Видалити
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="7" class="text-center text-muted">Ємності ще не створено.</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mb-0">
-                    Червоним підсвічені ємності, де залишок нижче мінімального.<br>
-                    Видалити можна лише ємності без операцій (приходів/списань).
-                </p>
-            </div>
+                        </td>
+                        <td>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('container_history', container_id=c.id) }}">
+                                Історія
+                            </a>
+                            <form method="post"
+                                  class="inline"
+                                  action="{{ url_for('delete_container', container_id=c.id) }}"
+                                  onsubmit="return confirm('Видалити цю ємність і всі повʼязані операції?');">
+                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

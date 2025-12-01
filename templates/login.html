@@ -3,29 +3,18 @@
 {% block title %}Вхід{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h1 class="h5 mb-3">Вхід в систему</h1>
-                <form method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Логін</label>
-                        <input type="text" name="username" class="form-control" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Пароль</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Увійти</button>
-                </form>
-                <p class="text-muted small mt-3 mb-0">
-                    Адміністратори входять зі своїм логіном і мають доступ до адмін-панелі.<br>
-                    Працівники входять під логіном, який їм створив начальник зміни, і можуть
-                    списувати матеріал без вибору себе зі списку.
-                </p>
-            </div>
+<div class="card" style="max-width:400px;">
+    <h1>Вхід</h1>
+    <form method="post">
+        <div style="margin-bottom:10px;">
+            <label for="username">Логін</label><br>
+            <input type="text" id="username" name="username" required>
         </div>
-    </div>
+        <div style="margin-bottom:10px;">
+            <label for="password">Пароль</label><br>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Увійти</button>
+    </form>
 </div>
 {% endblock %}

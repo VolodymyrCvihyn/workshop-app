@@ -3,140 +3,100 @@
 {% block title %}Пошук{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Пошук</h1>
-    <small class="text-muted">Швидкий пошук по матеріалах, локаціях та ємностях</small>
-</div>
+<h1>Пошук</h1>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-10">
-                <label class="form-label">Що шукаємо?</label>
-                <input type="text" name="q" value="{{ q or '' }}" class="form-control"
-                       placeholder="Код матеріалу, назва, локація, частина назви…">
-            </div>
-            <div class="col-md-2 d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary w-100">Шукати</button>
-            </div>
-        </form>
-    </div>
+<div class="card">
+    <form method="get">
+        <label>Пошуковий запит</label><br>
+        <input type="text" name="q" value="{{ q or '' }}" style="min-width:260px;"
+               placeholder="код або назва матеріалу, назва локації, ...">
+        <button class="btn btn-primary" type="submit">Шукати</button>
+    </form>
+    <p class="muted" style="margin-top:6px;">
+        Пошук виконується по матеріалах, локаціях та ємностях.
+    </p>
 </div>
 
 {% if q %}
-    <div class="row g-3">
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Матеріали</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead>
-                            <tr>
-                                <th>Код</th>
-                                <th>Назва</th>
-                                <th>Од.</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for m in materials %}
-                                <tr>
-                                    <td><span class="badge text-bg-secondary">{{ m.code }}</span></td>
-                                    <td>{{ m.name }}</td>
-                                    <td>{{ m.unit }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">
-                                        Нічого не знайдено.
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    <div class="card">
+        <h2 style="margin-top:0;">Матеріали</h2>
+        {% if not materials %}
+            <p class="muted">Нічого не знайдено.</p>
+        {% else %}
+            <ul>
+                {% for m in materials %}
+                    <li>
+                        <strong>{{ m.code }}</strong> – {{ m.name }} ({{ m.unit }})
+                        &nbsp;–&nbsp;
+                        <a href="{{ url_for('goto_material_containers', material_id=m.id) }}">
+                            ємності матеріалу
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0;">Локації</h2>
+        {% if not locations %}
+            <p class="muted">Нічого не знайдено.</p>
+        {% else %}
+            <ul>
+                {% for loc in locations %}
+                    <li>
+                        <strong>{{ loc.name }}</strong>
+                        &nbsp;–&nbsp;
+                        <a href="{{ url_for('admin_containers', location_id=loc.id) }}">
+                            ємності цієї локації
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0;">Ємності</h2>
+        {% if not containers %}
+            <p class="muted">Нічого не знайдено.</p>
+        {% else %}
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Матеріал</th>
+                        <th>Локація</th>
+                        <th>Залишок</th>
+                        <th>Од. виміру</th>
+                        <th>Дії</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in containers %}
+                        <tr>
+                            <td>{{ c.id }}</td>
+                            <td>{{ c.material_code }} – {{ c.material_name }}</td>
+                            <td>{{ c.location_name }}</td>
+                            <td>{{ '%.3f'|format(c.balance|float) }}</td>
+                            <td>{{ c.material_unit }}</td>
+                            <td>
+                                <a class="btn btn-secondary btn-sm"
+                                   href="{{ url_for('container_history', container_id=c.id) }}">
+                                    Історія
+                                </a>
+                                <a class="btn btn-secondary btn-sm"
+                                   href="{{ url_for('admin_containers', material_id=c.material_id) }}">
+                                    Ємності матеріалу
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="col-lg-3">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Локації</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Назва</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for l in locations %}
-                                <tr>
-                                    <td>{{ l.id }}</td>
-                                    <td>{{ l.name }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="2" class="text-center text-muted">
-                                        Нічого не знайдено.
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Ємності</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Матеріал</th>
-                                <th>Локація</th>
-                                <th class="text-end">Залишок</th>
-                                <th class="text-end">Дії</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for c in containers %}
-                                <tr>
-                                    <td>{{ c.id }}</td>
-                                    <td>{{ c.material_code }} – {{ c.material_name }} ({{ c.material_unit }})</td>
-                                    <td>{{ c.location_name }}</td>
-                                    <td class="text-end">{{ c.balance }} {{ c.material_unit }}</td>
-                                    <td class="text-end">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <a href="{{ url_for('container_history', container_id=c.id) }}"
-                                               class="btn btn-outline-secondary btn-sm">
-                                                Історія
-                                            </a>
-                                            <a href="{{ url_for('use_material', token=c.qr_token) }}"
-                                               class="btn btn-outline-primary btn-sm">
-                                                Списати
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">
-                                        Нічого не знайдено.
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% endif %}
     </div>
 {% endif %}
 {% endblock %}

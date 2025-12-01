@@ -1,135 +1,125 @@
 {% extends "base.html" %}
 
-{% block title %}Пакетний друк QR{% endblock %}
+{% block title %}Друк QR-кодів{% endblock %}
+
+{% block head_extra %}
+<style>
+    .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .qr-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px;
+        background: #fff;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+    .qr-label {
+        font-size: 12px;
+        margin-top: 4px;
+    }
+    .qr-small img {
+        width: 80px;
+        height: 80px;
+    }
+    .qr-medium img {
+        width: 120px;
+        height: 120px;
+    }
+    .qr-large img {
+        width: 180px;
+        height: 180px;
+    }
+    @media print {
+        header, .toolbar, .btn, .muted {
+            display: none !important;
+        }
+        body {
+            background: #fff;
+        }
+        main {
+            margin: 0;
+            max-width: none;
+        }
+        .card {
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3 d-flex justify-content-between align-items-end">
-    <div>
-        <h1 class="h4 mb-1">Пакетний друк QR-кодів</h1>
-        <small class="text-muted">Друк етикеток для ємностей</small>
-    </div>
-</div>
+<h1>Пакетний друк QR-кодів</h1>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-5">
-                <label class="form-label">Локація (шафа/стелаж)</label>
-                <select name="location_id" class="form-select">
-                    <option value="">-- Оберіть локацію --</option>
-                    {% for l in locations %}
-                        <option value="{{ l.id }}"
-                            {% if selected_location_id and selected_location_id == l.id %}selected{% endif %}>
-                            {{ l.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <div class="form-text">
-                    Для зручності друку зазвичай обирають одну шафу.
-                </div>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Розмір QR</label>
-                <select name="size" class="form-select">
-                    <option value="small" {% if size == 'small' %}selected{% endif %}>Малий (наклейки)</option>
-                    <option value="medium" {% if size == 'medium' %}selected{% endif %}>Середній</option>
-                    <option value="large" {% if size == 'large' %}selected{% endif %}>Великий</option>
-                </select>
-            </div>
-            <div class="col-md-4 d-flex gap-2 justify-content-end">
-                <button type="submit" class="btn btn-primary">
-                    Показати етикетки
+<div class="card">
+    <h2 style="margin-top:0;">Вибір локації та розміру</h2>
+    <form method="get" class="toolbar">
+        <div>
+            <label>Локація</label><br>
+            <select name="location_id" required>
+                <option value="">Оберіть локацію</option>
+                {% for loc in locations %}
+                    <option value="{{ loc.id }}"
+                        {% if selected_location_id == loc.id %}selected{% endif %}>
+                        {{ loc.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Розмір QR-коду</label><br>
+            <select name="size">
+                <option value="small" {% if size == 'small' %}selected{% endif %}>Малий</option>
+                <option value="medium" {% if size == 'medium' %}selected{% endif %}>Середній</option>
+                <option value="large" {% if size == 'large' %}selected{% endif %}>Великий</option>
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-primary" type="submit">Показати QR-коди</button>
+            {% if containers %}
+                <button class="btn btn-secondary" type="button" onclick="window.print();">
+                    Друкувати
                 </button>
-                {% if containers %}
-                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
-                        Друк (Ctrl+P)
-                    </button>
-                {% endif %}
-            </div>
-        </form>
-    </div>
+            {% endif %}
+        </div>
+    </form>
+    <p class="muted" style="margin-top:8px;">
+        Оберіть шафу/локацію та натисніть "Показати QR-коди", після цього можна друкувати аркуш.
+    </p>
 </div>
 
 {% if containers is not none %}
-    {% if containers %}
-        <style>
-            .qr-sheet {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                gap: 12px;
-            }
-            .qr-card {
-                background-color: #fff;
-                border-radius: 0.75rem;
-                border: 1px solid rgba(0,0,0,0.08);
-                padding: 6px;
-                text-align: center;
-                font-size: 11px;
-            }
-            .qr-card strong {
-                font-size: 11px;
-            }
-            .qr-img-small {
-                width: 60px;
-            }
-            .qr-img-medium {
-                width: 90px;
-            }
-            .qr-img-large {
-                width: 130px;
-            }
-            @media print {
-                body {
-                    background: #fff !important;
-                }
-                nav, form, .page-header {
-                    display: none !important;
-                }
-                main.container {
-                    max-width: 100%;
-                    padding: 0;
-                    margin: 0;
-                }
-                .qr-sheet {
-                    gap: 6px;
-                }
-                .qr-card {
-                    border-radius: 0;
-                    border: 1px solid #000;
-                    page-break-inside: avoid;
-                }
-            }
-        </style>
-
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="text-muted small">
-                        Знайдено ємностей: {{ containers|length }}.
-                        Натисніть «Друк» або Ctrl+P у браузері.
-                    </div>
-                </div>
-                <div class="qr-sheet">
-                    {% for c in containers %}
-                        <div class="qr-card">
-                            <img src="{{ url_for('container_qr', container_id=c.id) }}"
-                                 alt="QR"
-                                 class="qr-img-{{ size }}">
-                            <div class="mt-1">
-                                <strong>{{ c.material_code }}</strong><br>
-                                {{ c.material_name }}<br>
-                                <span class="text-muted">Локація: {{ c.location_name }}</span><br>
-                                <span class="text-muted">ID ємн.: {{ c.id }}</span>
-                            </div>
+    <div class="card">
+        {% if not containers %}
+            <p class="muted">У вибраній локації немає ємностей.</p>
+        {% else %}
+            <h2 style="margin-top:0;">
+                QR-коди для локації:
+                {% for loc in locations %}
+                    {% if loc.id == selected_location_id %}
+                        {{ loc.name }}
+                    {% endif %}
+                {% endfor %}
+            </h2>
+            <div class="qr-grid">
+                {% for c in containers %}
+                    <div class="qr-item qr-{{ size }}">
+                        <img src="{{ url_for('container_qr', container_id=c.id) }}" alt="QR">
+                        <div class="qr-label">
+                            QR для ємності:<br>
+                            <strong>{{ c.material_code }} – {{ c.material_name }}</strong><br>
+                            <span class="muted">{{ c.location_name }}</span>
                         </div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% endfor %}
             </div>
-        </div>
-    {% else %}
-        <div class="alert alert-info">
-            У вибраній локації поки немає ємностей для друку.
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 {% endif %}
 {% endblock %}

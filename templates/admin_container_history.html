@@ -3,118 +3,142 @@
 {% block title %}Історія ємності{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3 d-flex justify-content-between align-items-end">
-    <div>
-        <h1 class="h4 mb-1">Історія ємності #{{ container.container_id }}</h1>
-        <small>
-            {{ container.material_code }} – {{ container.material_name }} ({{ container.material_unit }}),
-            локація: {{ container.location_name }}
-        </small>
-        <div class="text-muted small">
-            Поточний залишок:
-            <strong>{{ container.balance }}</strong> {{ container.material_unit }}
-            {% if container.min_balance is not none %}
-                (мін. {{ container.min_balance }} {{ container.material_unit }})
-            {% endif %}
+<h1>Історія ємності</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Інформація по ємності</h2>
+    <p>
+        <strong>Матеріал:</strong>
+        {{ container.material_code }} – {{ container.material_name }}
+        ({{ container.material_unit }})<br>
+        <strong>Локація:</strong> {{ container.location_name }}<br>
+        <strong>Поточний залишок:</strong>
+        {{ '%.3f'|format(container.balance|float) }} {{ container.material_unit }}<br>
+        <strong>Мінімальний залишок:</strong>
+        {% if container.min_balance is not none %}
+            {{ '%.3f'|format(container.min_balance|float) }} {{ container.material_unit }}
+        {% else %}
+            <span class="muted">не задано</span>
+        {% endif %}
+    </p>
+    <p>
+        <a class="btn btn-secondary btn-sm"
+           href="{{ url_for('admin_containers', material_id=container.material_id) }}">
+            До списку ємностей цього матеріалу
+        </a>
+    </p>
+</div>
+
+<div class="card">
+    <h2 style="margin-top:0;">Фільтр історії</h2>
+    <form method="get" class="toolbar" action="{{ url_for('container_history', container_id=container.container_id) }}">
+        <div>
+            <label>Дата з</label><br>
+            <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
         </div>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('admin_containers') }}" class="btn btn-outline-secondary btn-sm">
-            ← До ємностей
-        </a>
-        <a href="{{ url_for('export_container_history',
-                             container_id=container.container_id,
-                             date_from=filters.date_from,
-                             date_to=filters.date_to,
-                             direction=filters.direction,
-                             worker_id=filters.worker_id) }}"
-           class="btn btn-outline-success btn-sm">
-            Експорт у CSV
-        </a>
-    </div>
+        <div>
+            <label>Дата по</label><br>
+            <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
+        </div>
+        <div>
+            <label>Тип операції</label><br>
+            <select name="direction">
+                <option value="">(усі)</option>
+                <option value="IN" {% if filters.direction == 'IN' %}selected{% endif %}>IN (прихід)</option>
+                <option value="OUT" {% if filters.direction == 'OUT' %}selected{% endif %}>OUT (списання)</option>
+            </select>
+        </div>
+        <div>
+            <label>Працівник</label><br>
+            <select name="worker_id">
+                <option value="">(усі)</option>
+                {% for w in workers %}
+                    <option value="{{ w.id }}"
+                        {% if selected_worker_id == w.id %}selected{% endif %}>
+                        {{ w.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" type="submit">Застосувати</button>
+            <a class="btn btn-secondary btn-sm"
+               href="{{ url_for('export_container_history', container_id=container.container_id,
+                                date_from=filters.date_from, date_to=filters.date_to,
+                                direction=filters.direction, worker_id=filters.worker_id) }}">
+                Експорт в CSV
+            </a>
+        </div>
+    </form>
 </div>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <h5 class="card-title mb-3">Фільтри</h5>
-        <form method="get" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Дата з</label>
-                <input type="date" name="date_from" value="{{ filters.date_from or '' }}" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Дата по</label>
-                <input type="date" name="date_to" value="{{ filters.date_to or '' }}" class="form-control">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Тип</label>
-                <select name="direction" class="form-select">
-                    <option value="">-- Всі --</option>
-                    <option value="IN" {% if filters.direction == 'IN' %}selected{% endif %}>Прихід (IN)</option>
-                    <option value="OUT" {% if filters.direction == 'OUT' %}selected{% endif %}>Списання (OUT)</option>
+<div class="card">
+    <h2 style="margin-top:0;">Служова операція (коригування)</h2>
+    <form method="post" action="{{ url_for('create_service_transaction', container_id=container.container_id) }}">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+            <div>
+                <label>Тип</label><br>
+                <select name="direction" required>
+                    <option value="IN">IN (додати до залишку)</option>
+                    <option value="OUT">OUT (зменшити залишок)</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Працівник</label>
-                <select name="worker_id" class="form-select">
-                    <option value="">-- Всі --</option>
-                    {% for w in workers %}
-                        <option value="{{ w.id }}"
-                            {% if selected_worker_id and selected_worker_id == w.id %}selected{% endif %}>
-                            {{ w.name }}
-                        </option>
-                    {% endfor %}
-                </select>
+            <div>
+                <label>Кількість</label><br>
+                <input type="text" name="qty" required placeholder="наприклад, 1.0">
             </div>
-            <div class="col-12 d-flex justify-content-end gap-2">
-                <button type="submit" class="btn btn-primary">Застосувати</button>
-                <a href="{{ url_for('container_history', container_id=container.container_id) }}"
-                   class="btn btn-outline-secondary">Очистити</a>
+            <div style="flex:1;">
+                <label>Коментар (опціонально)</label><br>
+                <input type="text" name="job" style="width:100%;" placeholder="Причина коригування">
             </div>
-        </form>
-    </div>
+            <div>
+                <button class="btn btn-primary" type="submit">Зберегти службову операцію</button>
+            </div>
+        </div>
+        <p class="muted" style="margin-top:6px;">
+            Такі операції не привʼязані до працівника та помічені як службові.
+        </p>
+    </form>
 </div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="card-title mb-3">Операції по ємності</h5>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
+<div class="card">
+    <h2 style="margin-top:0;">Історія операцій</h2>
+
+    {% if not history_rows %}
+        <p class="muted">За вибраним фільтром операцій немає.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
                 <thead>
                 <tr>
-                    <th>Дата/час (локальний)</th>
+                    <th>ID</th>
+                    <th>Дата/час</th>
                     <th>Тип</th>
+                    <th>Кількість</th>
                     <th>Працівник</th>
-                    <th class="text-end">Кількість</th>
-                    <th>Замовлення / робота / коментар</th>
+                    <th>Замовлення/робота</th>
+                    <th>Службова</th>
                 </tr>
                 </thead>
                 <tbody>
-                {% for t in history_rows %}
+                {% for r in history_rows %}
                     <tr>
-                        <td>{{ t.created_at|localtime }}</td>
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.created_at|localtime }}</td>
+                        <td>{{ r.direction }}</td>
+                        <td>{{ '%.3f'|format(r.qty|float) }}</td>
+                        <td>{{ r.worker_name or '' }}</td>
+                        <td>{{ r.job or '' }}</td>
                         <td>
-                            {% if t.direction == 'IN' %}
-                                <span class="badge text-bg-success">Прихід</span>
-                            {% else %}
-                                <span class="badge text-bg-danger">Списання</span>
+                            {% if r.is_service %}
+                                <span class="badge">службова</span>
                             {% endif %}
                         </td>
-                        <td>{{ t.worker_name or '' }}</td>
-                        <td class="text-end">
-                            {% if t.direction == 'OUT' %}-{% else %}+{% endif %}
-                            {{ t.qty }}
-                        </td>
-                        <td>{{ t.job or '' }}</td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">Операцій за вказаний період немає.</td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -3,111 +3,92 @@
 {% block title %}Прихід матеріалу{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Прихід матеріалу (розподіл по ємностях)</h1>
-    <small class="text-muted">
-        Спочатку оберіть матеріал, потім вкажіть, скільки зайшло в кожну ємність.
-    </small>
-</div>
+<h1>Прихід матеріалу (розподіл по ємностях)</h1>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-6">
-                <label class="form-label">Матеріал</label>
-                <select name="material_id" class="form-select" required>
-                    <option value="">-- Оберіть матеріал --</option>
-                    {% for m in materials %}
-                        <option value="{{ m.id }}"
-                            {% if selected_material and selected_material.id == m.id %}selected{% endif %}>
-                            {{ m.code }} – {{ m.name }} ({{ m.unit }})
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3 d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary w-100">
-                    Показати ємності
-                </button>
-            </div>
-        </form>
-    </div>
+<div class="card">
+    <h2 style="margin-top:0;">Вибір матеріалу</h2>
+    <form method="get">
+        <label>Матеріал</label><br>
+        <select name="material_id" onchange="this.form.submit()">
+            <option value="">Оберіть матеріал</option>
+            {% for m in materials %}
+                <option value="{{ m.id }}"
+                        {% if selected_material and selected_material.id == m.id %}selected{% endif %}>
+                    {{ m.code }} – {{ m.name }} ({{ m.unit }})
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+    <p class="muted" style="margin-top:8px;">
+        Спочатку виберіть матеріал, потім ви зможете розподілити прихід між його ємностями.
+    </p>
 </div>
 
 {% if selected_material %}
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <h5 class="card-title mb-3">
-                Розподіл: {{ selected_material.code }} – {{ selected_material.name }} ({{ selected_material.unit }})
-            </h5>
-
-            <p class="text-muted small">
-                Поточний сумарний залишок цього матеріалу у всіх ємностях:
-                <strong>
-                    {{ material_balance.balance if material_balance else 0 }}
-                    {{ selected_material.unit }}
-                </strong>
-            </p>
-
-            {% if containers %}
-                <form method="post">
-                    <input type="hidden" name="material_id" value="{{ selected_material.id }}">
-
-                    <div class="mb-3">
-                        <label class="form-label">Коментар / накладна (необовʼязково)</label>
-                        <input type="text" name="job" class="form-control"
-                               placeholder="№ накладної, постачальник, примітка…">
-                    </div>
-
-                    <div class="table-responsive mb-3">
-                        <table class="table table-sm align-middle">
-                            <thead>
-                            <tr>
-                                <th>Ємність</th>
-                                <th>Локація</th>
-                                <th class="text-end">Поточний залишок</th>
-                                <th class="text-end">Прихід у ємність</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for c in containers %}
-                                <tr>
-                                    <td>#{{ c.id }}</td>
-                                    <td>{{ c.location_name }}</td>
-                                    <td class="text-end">
-                                        {{ c.balance }} {{ selected_material.unit }}
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="input-group input-group-sm justify-content-end" style="max-width: 140px; margin-left: auto;">
-                                            <input type="number" step="0.01" min="0"
-                                                   name="qty_{{ c.id }}"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="0.00">
-                                            <span class="input-group-text">{{ selected_material.unit }}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <p class="text-muted small">
-                        Введіть кількість, що заходить в кожну ємність. Після збереження буде створено
-                        окремі операції «IN» для кожної ємності.
-                    </p>
-
-                    <button type="submit" class="btn btn-primary">
-                        Зберегти прихід
-                    </button>
-                </form>
+    <div class="card">
+        <h2 style="margin-top:0;">Матеріал: {{ selected_material.code }} – {{ selected_material.name }}</h2>
+        <p>
+            Одиниця виміру: <strong>{{ selected_material.unit }}</strong><br>
+            Поточний загальний залишок:
+            {% if material_balance %}
+                <strong>{{ '%.3f'|format(material_balance.balance|float) }} {{ selected_material.unit }}</strong>
             {% else %}
-                <div class="alert alert-warning mb-0">
-                    Для цього матеріалу немає жодної ємності. Спочатку створіть ємності на сторінці
-                    <a href="{{ url_for('admin_containers') }}">«Ємності»</a>.
-                </div>
+                <strong>0</strong> {{ selected_material.unit }}
             {% endif %}
-        </div>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0;">Розподіл приходу між ємностями</h2>
+
+        {% if not containers %}
+            <p class="muted">
+                Для цього матеріалу немає жодної ємності.
+                Створіть їх на сторінці
+                <a href="{{ url_for('admin_containers', material_id=selected_material.id) }}">Ємності</a>.
+            </p>
+        {% else %}
+            <form method="post">
+                <input type="hidden" name="material_id" value="{{ selected_material.id }}">
+                <div style="margin-bottom:8px;">
+                    <label>Замовлення / робота (опціонально)</label><br>
+                    <input type="text" name="job" style="width:100%;" placeholder="Номер замовлення, зміна тощо">
+                </div>
+
+                <p class="muted">
+                    Введіть кількість, яка приходить у кожну ємність. Порожні поля будуть пропущені.
+                </p>
+
+                <div style="overflow-x:auto; margin-top:8px;">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID ємності</th>
+                            <th>Локація</th>
+                            <th>Поточний залишок</th>
+                            <th>Додати ({{ selected_material.unit }})</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for c in containers %}
+                            <tr>
+                                <td>{{ c.id }}</td>
+                                <td>{{ c.location_name }}</td>
+                                <td>{{ '%.3f'|format(c.balance|float) }}</td>
+                                <td>
+                                    <input type="text" name="qty_{{ c.id }}" placeholder="0">
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <button class="btn btn-primary" type="submit">Зберегти прихід</button>
+                </div>
+            </form>
+        {% endif %}
     </div>
 {% endif %}
 {% endblock %}

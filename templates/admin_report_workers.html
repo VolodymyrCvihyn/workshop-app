@@ -3,79 +3,64 @@
 {% block title %}Звіт по працівниках{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Звіт по працівниках (списання)</h1>
-    <small>Хто і скільки матеріалів списав за період</small>
+<h1>Звіт: використання матеріалів працівниками</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Фільтр</h2>
+    <form method="get" class="toolbar">
+        <div>
+            <label>Дата з</label><br>
+            <input type="date" name="date_from" value="{{ filters.date_from or '' }}">
+        </div>
+        <div>
+            <label>Дата по</label><br>
+            <input type="date" name="date_to" value="{{ filters.date_to or '' }}">
+        </div>
+        <div>
+            <label>Матеріал</label><br>
+            <select name="material_id">
+                <option value="">(усі)</option>
+                {% for m in materials %}
+                    <option value="{{ m.id }}"
+                        {% if selected_material_id == m.id %}selected{% endif %}>
+                        {{ m.code }} – {{ m.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" type="submit">Застосувати</button>
+        </div>
+    </form>
 </div>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <h5 class="card-title mb-3">Фільтри</h5>
-        <form method="get" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Матеріал</label>
-                <select name="material_id" class="form-select">
-                    <option value="">-- Всі матеріали --</option>
-                    {% for m in materials %}
-                        <option value="{{ m.id }}"
-                            {% if selected_material_id and selected_material_id == m.id %}selected{% endif %}>
-                            {{ m.code }} – {{ m.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Дата з</label>
-                <input type="date" name="date_from" value="{{ filters.date_from or '' }}" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Дата по</label>
-                <input type="date" name="date_to" value="{{ filters.date_to or '' }}" class="form-control">
-            </div>
-            <div class="col-md-2 d-flex align-items-end justify-content-end gap-2">
-                <button type="submit" class="btn btn-primary w-100">Показати</button>
-            </div>
-            <div class="col-12 d-flex justify-content-end">
-                <a href="{{ url_for('report_workers') }}" class="btn btn-outline-secondary btn-sm">
-                    Очистити фільтри
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="card-title mb-3">Результат</h5>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
+<div class="card">
+    <h2 style="margin-top:0;">Результат</h2>
+    {% if not rows %}
+        <p class="muted">За вибраним фільтром даних немає.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
                 <thead>
                 <tr>
                     <th>Працівник</th>
                     <th>Матеріал</th>
-                    <th class="text-end">Списано</th>
+                    <th>Од. виміру</th>
+                    <th>Всього списано</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for r in rows %}
                     <tr>
                         <td>{{ r.worker_name }}</td>
-                        <td>{{ r.material_code }} – {{ r.material_name }} ({{ r.material_unit }})</td>
-                        <td class="text-end">{{ r.total_qty }} {{ r.material_unit }}</td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="3" class="text-center text-muted">
-                            Немає даних за вказаний період.
-                        </td>
+                        <td>{{ r.material_code }} – {{ r.material_name }}</td>
+                        <td>{{ r.material_unit }}</td>
+                        <td>{{ '%.3f'|format(r.total_qty|float) }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small mb-0">
-            У звіт потрапляють лише операції типу <strong>OUT</strong> (списання).
-        </p>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

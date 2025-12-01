@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Стан системи{% endblock %}
+
+{% block content %}
+<h1>Стан системи</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">База даних</h2>
+    <p>
+        Шлях до файлу БД:<br>
+        <code>{{ stats.db_path }}</code>
+    </p>
+    <p>
+        Поточний розмір файлу: <strong>{{ stats.db_size_human }}</strong>
+    </p>
+
+    <h3>Кількість записів у таблицях</h3>
+    <table style="max-width:400px;">
+        <thead>
+        <tr>
+            <th>Таблиця</th>
+            <th>Кількість</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for tbl, cnt in stats.counts.items() %}
+            <tr>
+                <td>{{ tbl }}</td>
+                <td>{{ cnt }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:16px;">
+        <form method="post" class="inline">
+            <input type="hidden" name="action" value="integrity">
+            <button class="btn btn-secondary" type="submit">Перевірити цілісність (PRAGMA integrity_check)</button>
+        </form>
+        <form method="post" class="inline" style="margin-left:8px;"
+              onsubmit="return confirm('Виконати VACUUM? Це може зайняти певний час.');">
+            <input type="hidden" name="action" value="vacuum">
+            <button class="btn btn-secondary" type="submit">VACUUM (оптимізація)</button>
+        </form>
+    </div>
+
+    {% if integrity_result %}
+        <p style="margin-top:10px;">
+            Результат останньої перевірки цілісності:
+            <strong>{{ integrity_result }}</strong>
+        </p>
+    {% endif %}
+</div>
+{% endblock %}

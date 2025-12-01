@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Сканування QR-коду{% endblock %}
+
+{% block head_extra %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+    #qr-reader {
+        max-width: 480px;
+        margin-top: 12px;
+    }
+    @media (max-width: 600px) {
+        #qr-reader {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Сканування QR-коду</h1>
+    <p>
+        Дозвольте браузеру доступ до камери. Наведіть камеру на QR-код із ємності –
+        після зчитування ви автоматично перейдете на сторінку списання цієї ємності.
+    </p>
+    <div id="qr-reader"></div>
+    <p class="muted">
+        Сканер працює в <strong>цій самій вкладці</strong>, тому вкладки браузера не будуть дублюватися.
+    </p>
+</div>
+
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        // Перехід за URL з QR-коду (у нашому випадку це посилання /use/<token>)
+        window.location.href = decodedText;
+    }
+
+    function onScanFailure(error) {
+        // Можна ігнорувати помилки розпізнавання кадру
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (!window.Html5QrcodeScanner) {
+            alert("Не вдалося завантажити модуль сканування QR. Перевірте інтернет-зʼєднання.");
+            return;
+        }
+        let scanner = new Html5QrcodeScanner("qr-reader", {
+            fps: 10,
+            qrbox: 250
+        });
+        scanner.render(onScanSuccess, onScanFailure);
+    });
+</script>
+{% endblock %}

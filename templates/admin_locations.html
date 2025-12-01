@@ -3,87 +3,66 @@
 {% block title %}Локації{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Локації (шафи, стелажі)</h1>
-    <small class="text-muted">Місця зберігання матеріалів</small>
+<h1>Локації (шафи)</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Додати локацію</h2>
+    <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div style="margin-bottom:8px;">
+            <label for="loc_name">Назва локації / шафи</label><br>
+            <input type="text" id="loc_name" name="name" required style="min-width:260px;">
+        </div>
+        <button class="btn btn-primary" type="submit">Додати локацію</button>
+    </form>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Додати локацію</h5>
-                <form method="post">
-                    <input type="hidden" name="action" value="add">
-                    <div class="mb-3">
-                        <label class="form-label">Назва локації</label>
-                        <input type="text" name="name" class="form-control" required placeholder="Напр. Шафа 1, Стелаж А">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Додати</button>
-                </form>
-                <p class="mt-2 text-muted small mb-0">
-                    Назви мають бути унікальні (наприклад, «Шафа 1», «Стелаж B» тощо).
-                </p>
-            </div>
-        </div>
-    </div>
+<div class="card">
+    <h2 style="margin-top:0;">Список локацій</h2>
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Список локацій</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Назва</th>
-                            <th class="text-end">Дії</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for l in locations %}
-                            <tr>
-                                <td>{{ l.id }}</td>
-                                <td>
-                                    <form method="post" class="d-flex gap-2">
-                                        <input type="hidden" name="action" value="edit">
-                                        <input type="hidden" name="location_id" value="{{ l.id }}">
-                                        <input type="text" name="name"
-                                               value="{{ l.name }}"
-                                               class="form-control form-control-sm">
-                                </td>
-                                <td class="text-end">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                Зберегти
-                                            </button>
-                                    </form>
-                                            <form method="post"
-                                                  action="{{ url_for('delete_location', location_id=l.id) }}"
-                                                  onsubmit="return confirm('Видалити локацію? Можна лише якщо до неї не привʼязані ємності.');">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                    Видалити
-                                                </button>
-                                            </form>
-                                        </div>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">
-                                    Локації ще не створені.
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mb-0">
-                    Видалити можна тільки ті локації, до яких не привʼязані ємності.
-                </p>
-            </div>
+    {% if not locations %}
+        <p class="muted">Ще не додано жодної локації.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Назва</th>
+                    <th>Дії</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for loc in locations %}
+                    <tr>
+                        <td>{{ loc.id }}</td>
+                        <td>
+                            <!-- Редагування назви -->
+                            <form method="post" class="inline" style="margin:0;">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="location_id" value="{{ loc.id }}">
+                                <input type="text" name="name" value="{{ loc.name }}" style="min-width:220px;">
+                                <button class="btn btn-secondary btn-sm" type="submit">Зберегти</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('admin_containers', location_id=loc.id) }}">
+                                Ємності цієї локації
+                            </a>
+
+                            <form method="post"
+                                  class="inline"
+                                  action="{{ url_for('delete_location', location_id=loc.id) }}"
+                                  onsubmit="return confirm('Видалити локацію {{ loc.name }}?\\nБудуть видалені всі її ємності та повʼязані операції.');">
+                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -26,15 +26,15 @@ TIMEZONE_NAME = os.environ.get("TIMEZONE", "Europe/Kyiv")
 LOCAL_TZ = ZoneInfo(TIMEZONE_NAME)
 UTC_TZ = ZoneInfo("UTC")
 
-DB_PATH = os.environ.get(
+DB_PATH = os.path.abspath(os.environ.get(
     "DB_PATH",
     os.path.join(os.path.dirname(__file__), "db.sqlite")
-)
+))
 
-LOG_PATH = os.environ.get(
+LOG_PATH = os.path.abspath(os.environ.get(
     "LOG_PATH",
     os.path.join(os.path.dirname(__file__), "app.log")
-)
+))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,6 +65,10 @@ def close_db(error=None):
 
 
 def add_column_if_not_exists(table: str, column_def: str):
+    """
+    Додає колонку до таблиці, якщо її ще немає.
+    column_def: рядок на кшталт "min_balance REAL" або "is_service INTEGER NOT NULL DEFAULT 0".
+    """
     db = get_db()
     col_name = column_def.split()[0]
     rows = db.execute(f"PRAGMA table_info({table});").fetchall()
@@ -133,6 +137,7 @@ def init_db():
             qty REAL NOT NULL,
             direction TEXT NOT NULL CHECK(direction IN ('IN','OUT')),
             job TEXT,
+            is_service INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY(worker_id) REFERENCES workers(id),
             FOREIGN KEY(container_id) REFERENCES containers(id)
         );
@@ -155,8 +160,10 @@ def init_db():
 
     db.commit()
 
+    # Додаткові колонки на випадок старих БД
     add_column_if_not_exists("containers", "min_balance REAL")
     add_column_if_not_exists("workers", "pin TEXT")
+    add_column_if_not_exists("transactions", "is_service INTEGER NOT NULL DEFAULT 0")
 
     # Унікальність PIN
     try:
@@ -191,7 +198,7 @@ def init_db():
     except sqlite3.OperationalError:
         logger.warning("Не вдалося створити індекси для transactions")
 
-    # Унікальний логін на працівника (необовʼязково)
+    # Один логін на працівника (опційно)
     try:
         db.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_worker_id ON users(worker_id) "
@@ -238,10 +245,11 @@ def login_required(view):
 
 @app.route("/")
 def index():
-    """Головна:
-       - адміна перекидає на дашборд,
-       - працівнику показує просту сторінку з інструкцією,
-       - неавторизованому теж інструкцію.
+    """
+    Головна:
+      - адміна перекидає на дашборд,
+      - працівнику показує інструкцію,
+      - неавторизованому теж інструкцію.
     """
     if session.get("is_admin"):
         return redirect(url_for("admin_index"))
@@ -285,7 +293,6 @@ def login():
             if not next_url or not next_url.startswith("/admin"):
                 next_url = url_for("admin_index")
         else:
-            # Звичайний працівник: або повертаємось на потрібну сторінку, або на головну
             if not next_url:
                 next_url = url_for("index")
 
@@ -334,7 +341,7 @@ def get_workers():
     ).fetchall()
 
 
-def get_containers_with_stock(location_id=None, search=None):
+def get_containers_with_stock(location_id=None, search=None, material_id=None):
     db = get_db()
     conditions = []
     params = []
@@ -342,6 +349,10 @@ def get_containers_with_stock(location_id=None, search=None):
     if location_id:
         conditions.append("c.location_id = ?")
         params.append(location_id)
+
+    if material_id:
+        conditions.append("c.material_id = ?")
+        params.append(material_id)
 
     if search:
         pattern = f"%{search}%"
@@ -364,6 +375,7 @@ def get_containers_with_stock(location_id=None, search=None):
             c.location_id,
             c.qr_token,
             c.min_balance,
+            m.id AS material_id,
             m.code AS material_code,
             m.name AS material_name,
             m.unit AS material_unit,
@@ -384,6 +396,7 @@ def get_containers_with_stock(location_id=None, search=None):
             c.location_id,
             c.qr_token,
             c.min_balance,
+            m.id,
             m.code,
             m.name,
             m.unit,
@@ -431,6 +444,20 @@ def localtime_filter(value: str) -> str:
     return dt_local.strftime("%Y-%m-%d %H:%M")
 
 
+def _format_bytes(num_bytes: int) -> str:
+    """Людяний формат розміру файлу."""
+    if num_bytes is None:
+        return "невідомо"
+    step = 1024.0
+    units = ["Б", "КБ", "МБ", "ГБ", "ТБ"]
+    size = float(num_bytes)
+    idx = 0
+    while size >= step and idx < len(units) - 1:
+        size /= step
+        idx += 1
+    return f"{size:.1f} {units[idx]}"
+
+
 # ----------------- Дашборд -----------------
 
 
@@ -442,7 +469,7 @@ def admin_index():
 
     shelves = []
     for loc in locations:
-        shelf_containers = [c for c in containers if c["location_name"] == loc["name"]]
+        shelf_containers = [c for c in containers if c["location_id"] == loc["id"]]
         has_low = any(
             c["min_balance"] is not None and c["balance"] < c["min_balance"]
             for c in shelf_containers
@@ -520,6 +547,48 @@ def admin_account():
     return render_template("admin_account.html", user=user)
 
 
+# ----------------- Стан системи / діагностика -----------------
+
+
+@app.route("/admin/system", methods=["GET", "POST"])
+@login_required
+def admin_system():
+    db = get_db()
+
+    stats = {}
+    if os.path.exists(DB_PATH):
+        stats["db_path"] = DB_PATH
+        stats["db_size"] = os.path.getsize(DB_PATH)
+    else:
+        stats["db_path"] = DB_PATH
+        stats["db_size"] = None
+
+    tables = ["materials", "locations", "workers", "containers", "transactions", "users"]
+    counts = {}
+    for t in tables:
+        row = db.execute(f"SELECT COUNT(*) AS cnt FROM {t};").fetchone()
+        counts[t] = row["cnt"]
+    stats["counts"] = counts
+
+    integrity_result = None
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "integrity":
+            row = db.execute("PRAGMA integrity_check;").fetchone()
+            integrity_result = row[0] if row else "невідомо"
+            flash(f"Результат перевірки цілісності: {integrity_result}", "info")
+        elif action == "vacuum":
+            db.execute("VACUUM;")
+            db.commit()
+            if os.path.exists(DB_PATH):
+                stats["db_size"] = os.path.getsize(DB_PATH)
+            flash("VACUUM виконано. База оптимізована.", "success")
+
+    stats["db_size_human"] = _format_bytes(stats["db_size"]) if stats["db_size"] is not None else "невідомо"
+    return render_template("admin_system.html", stats=stats, integrity_result=integrity_result)
+
+
 # ----------------- Матеріали -----------------
 
 
@@ -577,19 +646,37 @@ def admin_materials():
 @login_required
 def delete_material(material_id):
     db = get_db()
-    row = db.execute(
-        "SELECT COUNT(*) AS cnt FROM containers WHERE material_id = ?;",
+
+    # Знайти всі ємності цього матеріалу
+    containers = db.execute(
+        "SELECT id FROM containers WHERE material_id = ?;",
         (material_id,),
-    ).fetchone()
-    if row["cnt"] > 0:
-        flash("Неможливо видалити матеріал: до нього привʼязані ємності.", "error")
-        return redirect(url_for("admin_materials"))
+    ).fetchall()
+    container_ids = [c["id"] for c in containers]
+
+    if container_ids:
+        placeholders = ",".join("?" * len(container_ids))
+        db.execute(
+            f"DELETE FROM transactions WHERE container_id IN ({placeholders});",
+            container_ids,
+        )
+        db.execute(
+            f"DELETE FROM containers WHERE id IN ({placeholders});",
+            container_ids,
+        )
 
     db.execute("DELETE FROM materials WHERE id = ?;", (material_id,))
     db.commit()
-    logger.info(f"Deleted material id={material_id}")
-    flash("Матеріал видалено.", "success")
+    logger.info(f"Deleted material id={material_id} with its containers and transactions")
+    flash("Матеріал, його ємності та всі повʼязані операції видалено.", "success")
     return redirect(url_for("admin_materials"))
+
+
+@app.route("/admin/materials/<int:material_id>/containers")
+@login_required
+def goto_material_containers(material_id):
+    """Швидкий перехід до списку ємностей матеріалу."""
+    return redirect(url_for("admin_containers", material_id=material_id))
 
 
 # ----------------- Локації -----------------
@@ -644,18 +731,28 @@ def admin_locations():
 @login_required
 def delete_location(location_id):
     db = get_db()
-    row = db.execute(
-        "SELECT COUNT(*) AS cnt FROM containers WHERE location_id = ?;",
+
+    containers = db.execute(
+        "SELECT id FROM containers WHERE location_id = ?;",
         (location_id,),
-    ).fetchone()
-    if row["cnt"] > 0:
-        flash("Неможливо видалити локацію: до неї привʼязані ємності.", "error")
-        return redirect(url_for("admin_locations"))
+    ).fetchall()
+    container_ids = [c["id"] for c in containers]
+
+    if container_ids:
+        placeholders = ",".join("?" * len(container_ids))
+        db.execute(
+            f"DELETE FROM transactions WHERE container_id IN ({placeholders});",
+            container_ids,
+        )
+        db.execute(
+            f"DELETE FROM containers WHERE id IN ({placeholders});",
+            container_ids,
+        )
 
     db.execute("DELETE FROM locations WHERE id = ?;", (location_id,))
     db.commit()
-    logger.info(f"Deleted location id={location_id}")
-    flash("Локацію видалено.", "success")
+    logger.info(f"Deleted location id={location_id} with its containers and transactions")
+    flash("Локацію, її ємності та всі повʼязані операції видалено.", "success")
     return redirect(url_for("admin_locations"))
 
 
@@ -781,22 +878,25 @@ def admin_workers():
 @login_required
 def delete_worker(worker_id):
     db = get_db()
-    row = db.execute(
-        "SELECT COUNT(*) AS cnt FROM transactions WHERE worker_id = ?;",
-        (worker_id,),
-    ).fetchone()
-    if row["cnt"] > 0:
-        flash("Неможливо видалити працівника: є повʼязані операції.", "error")
-        return redirect(url_for("admin_workers"))
 
-    # Видаляємо привʼязаний користувацький акаунт (якщо є)
+    # Операції залишаємо, але відв'язуємо працівника
+    db.execute(
+        "UPDATE transactions SET worker_id = NULL WHERE worker_id = ?;",
+        (worker_id,),
+    )
     db.execute("DELETE FROM users WHERE worker_id = ?;", (worker_id,))
     db.execute("DELETE FROM workers WHERE id = ?;", (worker_id,))
     db.commit()
-    logger.info(f"Deleted worker id={worker_id}")
-    flash("Працівника видалено.", "success")
+    logger.info(f"Deleted worker id={worker_id}, worker_id removed from transactions")
+    flash("Працівника видалено. Операції збережено, але без привʼязки до нього.", "success")
     return redirect(url_for("admin_workers"))
 
+
+@app.route("/admin/workers/<int:worker_id>/transactions")
+@login_required
+def goto_worker_transactions(worker_id):
+    """Швидкий перехід до журналу по працівнику."""
+    return redirect(url_for("admin_transactions", worker_id=worker_id))
 
 # ----------------- Ємності -----------------
 
@@ -872,12 +972,14 @@ def admin_containers():
 
     location_filter = request.args.get("location_id") or None
     search_q = request.args.get("q") or None
+    material_filter = request.args.get("material_id") or None
 
     materials = get_materials()
     locations = get_locations()
-    containers = get_containers_with_stock(location_filter, search_q)
+    containers = get_containers_with_stock(location_filter, search_q, material_filter)
 
     selected_location_id = int(location_filter) if location_filter else None
+    selected_material_id = int(material_filter) if material_filter else None
 
     return render_template(
         "admin_containers.html",
@@ -885,6 +987,7 @@ def admin_containers():
         locations=locations,
         containers=containers,
         selected_location_id=selected_location_id,
+        selected_material_id=selected_material_id,
         search_q=search_q,
     )
 
@@ -893,18 +996,15 @@ def admin_containers():
 @login_required
 def delete_container(container_id):
     db = get_db()
-    row = db.execute(
-        "SELECT COUNT(*) AS cnt FROM transactions WHERE container_id = ?;",
-        (container_id,),
-    ).fetchone()
-    if row["cnt"] > 0:
-        flash("Неможливо видалити ємність: є повʼязані операції.", "error")
-        return redirect(url_for("admin_containers"))
 
+    db.execute(
+        "DELETE FROM transactions WHERE container_id = ?;",
+        (container_id,),
+    )
     db.execute("DELETE FROM containers WHERE id = ?;", (container_id,))
     db.commit()
-    logger.info(f"Deleted container id={container_id}")
-    flash("Ємність видалено.", "success")
+    logger.info(f"Deleted container id={container_id} and its transactions")
+    flash("Ємність та всі повʼязані операції видалено.", "success")
     return redirect(url_for("admin_containers"))
 
 
@@ -978,6 +1078,7 @@ def container_history(container_id):
             t.qty,
             t.direction,
             t.job,
+            t.is_service,
             w.name AS worker_name
         FROM transactions t
         LEFT JOIN workers w ON t.worker_id = w.id
@@ -1052,6 +1153,7 @@ def export_container_history(container_id):
             t.direction,
             t.qty,
             t.job,
+            t.is_service,
             w.name AS worker_name,
             m.code AS material_code,
             m.name AS material_name,
@@ -1082,6 +1184,7 @@ def export_container_history(container_id):
         "Кількість",
         "Локація",
         "Замовлення/робота",
+        "Службова"
     ])
 
     for r in rows:
@@ -1097,6 +1200,7 @@ def export_container_history(container_id):
             r["qty"],
             r["location_name"],
             r["job"] or "",
+            "1" if r["is_service"] else "0",
         ])
 
     csv_data = output.getvalue()
@@ -1109,6 +1213,54 @@ def export_container_history(container_id):
             "Content-Disposition": "attachment; filename=container_history.csv"
         },
     )
+
+
+@app.route("/admin/containers/<int:container_id>/service_tx", methods=["POST"])
+@login_required
+def create_service_transaction(container_id):
+    """Створення службової операції IN/OUT для ємності (ручне коригування)."""
+    db = get_db()
+
+    exists = db.execute(
+        "SELECT 1 FROM containers WHERE id = ?;",
+        (container_id,),
+    ).fetchone()
+    if exists is None:
+        abort(404)
+
+    direction = request.form.get("direction")
+    qty_str = request.form.get("qty", "").strip()
+    job = request.form.get("job", "").strip()
+
+    if direction not in ("IN", "OUT"):
+        flash("Невірний тип операції (IN/OUT).", "error")
+        return redirect(url_for("container_history", container_id=container_id))
+
+    try:
+        qty = float(qty_str.replace(",", "."))
+    except ValueError:
+        flash("Кількість має бути числом.", "error")
+        return redirect(url_for("container_history", container_id=container_id))
+
+    if qty <= 0:
+        flash("Кількість має бути більшою за 0.", "error")
+        return redirect(url_for("container_history", container_id=container_id))
+
+    now = datetime.utcnow().isoformat()
+    job_final = job or "Службове коригування"
+
+    db.execute(
+        """
+        INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job, is_service)
+        VALUES (?, NULL, ?, ?, ?, ?, 1);
+        """,
+        (now, container_id, qty, direction, job_final),
+    )
+    db.commit()
+
+    logger.info(f"Service transaction: container_id={container_id}, direction={direction}, qty={qty}")
+    flash("Службову операцію збережено.", "success")
+    return redirect(url_for("container_history", container_id=container_id))
 
 
 # ----------------- QR-коди -----------------
@@ -1125,7 +1277,7 @@ def print_qr():
     selected_location_id = int(location_id) if location_id else None
 
     if location_id:
-        containers = get_containers_with_stock(location_id, None)
+        containers = get_containers_with_stock(location_id, None, None)
 
     return render_template(
         "admin_print_qr.html",
@@ -1155,6 +1307,15 @@ def container_qr(container_id):
     img.save(buf, format="PNG")
     buf.seek(0)
     return send_file(buf, mimetype="image/png")
+
+
+# ----------------- Сканування QR в браузері -----------------
+
+
+@app.route("/scan")
+def scan():
+    """Сторінка для сканування наступного QR-коду в тій самій вкладці."""
+    return render_template("scan.html")
 
 
 # ----------------- Списання по QR (для працівників) -----------------
@@ -1250,8 +1411,8 @@ def use_material(token):
 
         db.execute(
             """
-            INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job)
-            VALUES (?, ?, ?, ?, 'OUT', ?);
+            INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job, is_service)
+            VALUES (?, ?, ?, ?, 'OUT', ?, 0);
             """,
             (now, worker_id, container["container_id"], qty, job or None),
         )
@@ -1333,8 +1494,8 @@ def admin_material_in():
 
             db.execute(
                 """
-                INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job)
-                VALUES (?, NULL, ?, ?, 'IN', ?);
+                INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job, is_service)
+                VALUES (?, NULL, ?, ?, 'IN', ?, 0);
                 """,
                 (now, c["id"], qty, job or None),
             )
@@ -1440,8 +1601,8 @@ def admin_stock():
 
         db.execute(
             """
-            INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job)
-            VALUES (?, NULL, ?, ?, 'IN', ?);
+            INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job, is_service)
+            VALUES (?, NULL, ?, ?, 'IN', ?, 0);
             """,
             (now, container_id, qty, job or None),
         )
@@ -1638,6 +1799,9 @@ def _build_transactions_query(filters, limit=None, offset=None):
         conditions.append("t.job LIKE ?")
         params.append("%сторно%")
 
+    if filters.get("service_only"):
+        conditions.append("t.is_service = 1")
+
     where_clause = ""
     if conditions:
         where_clause = "WHERE " + " AND ".join(conditions)
@@ -1649,6 +1813,7 @@ def _build_transactions_query(filters, limit=None, offset=None):
             t.qty,
             t.direction,
             t.job,
+            t.is_service,
             w.name AS worker_name,
             m.code AS material_code,
             m.name AS material_name,
@@ -1690,6 +1855,7 @@ def admin_transactions():
         "date_to": request.args.get("date_to") or None,
         "q": request.args.get("q") or None,
         "storno_only": True if request.args.get("storno") == "1" else False,
+        "service_only": True if request.args.get("service") == "1" else False,
     }
 
     query, params = _build_transactions_query(filters, limit=per_page, offset=offset)
@@ -1736,8 +1902,8 @@ def reverse_transaction(tx_id):
 
     cur = db.execute(
         """
-        INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job)
-        VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO transactions (created_at, worker_id, container_id, qty, direction, job, is_service)
+        VALUES (?, ?, ?, ?, ?, ?, 1);
         """,
         (now, tx["worker_id"], tx["container_id"], tx["qty"], opposite_dir, job),
     )
@@ -1761,6 +1927,7 @@ def export_transactions_csv():
         "date_to": request.args.get("date_to") or None,
         "q": request.args.get("q") or None,
         "storno_only": True if request.args.get("storno") == "1" else False,
+        "service_only": True if request.args.get("service") == "1" else False,
     }
 
     query, params = _build_transactions_query(filters)
@@ -1780,6 +1947,7 @@ def export_transactions_csv():
         "Кількість",
         "Локація",
         "Замовлення/робота",
+        "Службова"
     ])
 
     for r in rows:
@@ -1795,6 +1963,7 @@ def export_transactions_csv():
             r["qty"],
             r["location_name"],
             r["job"] or "",
+            "1" if r["is_service"] else "0",
         ])
 
     csv_data = output.getvalue()
@@ -1857,6 +2026,5 @@ def admin_search():
 
 
 if __name__ == "__main__":
-    import os  # якщо вже є на початку файлу – вдруге додавати НЕ треба
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=True)

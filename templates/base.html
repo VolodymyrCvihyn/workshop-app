@@ -2,118 +2,233 @@
 <html lang="uk">
 <head>
     <meta charset="utf-8">
-    <title>{% block title %}Майстерня{% endblock %} · Облік матеріалів</title>
+    <title>{% block title %}Система обліку{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f5f5f7; }
-        .navbar-brand { font-weight: 600; }
-        .page-header { border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: .5rem; }
-        .card { border-radius: 0.75rem; }
-        .accordion-button:not(.collapsed) { background-color: #e9ecef; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            background: #f5f5f7;
+        }
+        header {
+            background: #1f2933;
+            color: #fff;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header .logo {
+            font-weight: 600;
+        }
+        header nav a {
+            color: #e5e7eb;
+            margin-right: 10px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        header nav a:hover {
+            text-decoration: underline;
+        }
+        .user-info {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        main {
+            max-width: 1200px;
+            margin: 16px auto 32px;
+            padding: 0 16px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        }
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+        th, td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            background: #f3f4f6;
+        }
+        .btn {
+            display: inline-block;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 13px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: #fff;
+            border-color: #b91c1c;
+        }
+        .btn-sm {
+            font-size: 12px;
+            padding: 2px 8px;
+        }
+        .btn + .btn {
+            margin-left: 4px;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        select {
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            font-size: 13px;
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        form.inline {
+            display: inline;
+        }
+        .flash-container {
+            margin-bottom: 12px;
+        }
+        .flash {
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .flash-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .flash-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .flash-info {
+            background: #e0f2fe;
+            color: #075985;
+        }
+        .low-stock {
+            background: #fef2f2;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 11px;
+            color: #fff;
+            background: #ef4444;
+        }
+        .muted {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .toolbar-right {
+            text-align: right;
+        }
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            header nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            table {
+                font-size: 12px;
+            }
+        }
     </style>
+    {% block head_extra %}{% endblock %}
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('index') }}">Майстерня</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                aria-controls="mainNav" aria-expanded="false" aria-label="Перемкнути навігацію">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="mainNav">
-            {% if session.get('is_admin') %}
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_index') }}">Дашборд</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_search') }}">Пошук</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_materials') }}">Матеріали</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_locations') }}">Локації</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_workers') }}">Працівники</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_containers') }}">Ємності</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="stockDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            Прихід
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="stockDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('admin_material_in') }}">Прихід матеріалу (розподіл)</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_stock') }}">Прихід в ємності</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_summary') }}">Залишки</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Звіти
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('report_workers') }}">За працівниками</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('report_materials') }}">За матеріалами</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_transactions') }}">Журнал</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_account') }}">Мій акаунт</a>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-light small d-none d-md-inline">
-                        {{ session.get('username') }}
-                    </span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Вийти</a>
-                </div>
-            {% elif session.get('user_id') %}
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <span class="nav-link disabled">Ви: {{ session.get('username') }}</span>
-                    </li>
-                </ul>
-                <div class="d-flex">
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Вийти</a>
-                </div>
-            {% else %}
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
-                <div class="d-flex">
-                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Увійти</a>
-                </div>
-            {% endif %}
-        </div>
+<header>
+    <div>
+        <span class="logo">Система обліку</span>
+        {% if session.get('is_admin') %}
+            <nav style="margin-top:4px;">
+                <a href="{{ url_for('admin_index') }}">Дашборд</a>
+                <a href="{{ url_for('admin_materials') }}">Матеріали</a>
+                <a href="{{ url_for('admin_locations') }}">Локації</a>
+                <a href="{{ url_for('admin_containers') }}">Ємності</a>
+                <a href="{{ url_for('admin_workers') }}">Працівники</a>
+                <a href="{{ url_for('admin_material_in') }}">Прихід (матеріал)</a>
+                <a href="{{ url_for('admin_stock') }}">Прихід (ємність)</a>
+                <a href="{{ url_for('admin_summary') }}">Залишки</a>
+                <a href="{{ url_for('report_workers') }}">Звіт працівники</a>
+                <a href="{{ url_for('report_materials') }}">Звіт матеріали</a>
+                <a href="{{ url_for('admin_transactions') }}">Журнал</a>
+                <a href="{{ url_for('admin_system') }}">Стан системи</a>
+                <a href="{{ url_for('admin_search') }}">Пошук</a>
+            </nav>
+        {% endif %}
     </div>
-</nav>
+    <div class="user-info">
+        {% if session.get('user_id') %}
+            Користувач: <strong>{{ session.get('username') }}</strong>
+            {% if session.get('is_admin') %}
+                (адміністратор)
+            {% else %}
+                (працівник)
+            {% endif %}
+            &nbsp;|&nbsp;
+            <a href="{{ url_for('admin_account') }}" style="color:#bfdbfe;">Мій акаунт</a>
+            &nbsp;|&nbsp;
+            <a href="{{ url_for('logout') }}" style="color:#fecaca;">Вийти</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" style="color:#bfdbfe;">Увійти</a>
+        {% endif %}
+    </div>
+</header>
 
-<main class="container my-3">
-    {% with messages = get_flashed_messages(with_categories=True) %}
-        {% if messages %}
-            <div class="mb-3">
+<main>
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
                 {% for category, message in messages %}
-                    {% set bs_cat = 'danger' if category == 'error' else category %}
-                    <div class="alert alert-{{ bs_cat }} alert-dismissible fade show" role="alert">
+                    <div class="flash flash-{{ category }}">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
                     </div>
                 {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
     {% block content %}{% endblock %}
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

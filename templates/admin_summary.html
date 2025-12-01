@@ -1,48 +1,36 @@
 {% extends "base.html" %}
 
-{% block title %}Зведений залишок{% endblock %}
+{% block title %}Залишки по матеріалах{% endblock %}
 
 {% block content %}
-<div class="page-header mb-3">
-    <h1 class="h4 mb-1">Зведений залишок по матеріалах</h1>
-    <small>Показує сумарний залишок по кожному матеріалу (по всіх ємностях)</small>
-</div>
+<h1>Залишки по матеріалах</h1>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
+<div class="card">
+    {% if not materials %}
+        <p class="muted">Немає матеріалів.</p>
+    {% else %}
+        <div style="overflow-x:auto;">
+            <table>
                 <thead>
                 <tr>
                     <th>Код</th>
                     <th>Назва</th>
+                    <th>Залишок</th>
                     <th>Од. виміру</th>
-                    <th class="text-end">Залишок (усього)</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for m in materials %}
-                    <tr class="{% if m.balance == 0 %}table-light{% endif %}">
-                        <td><span class="badge text-bg-light">{{ m.code }}</span></td>
+                    <tr class="{% if m.balance is not none and m.balance < 0 %}low-stock{% endif %}">
+                        <td>{{ m.code }}</td>
                         <td>{{ m.name }}</td>
+                        <td>{{ '%.3f'|format(m.balance|float) }}</td>
                         <td>{{ m.unit }}</td>
-                        <td class="text-end">
-                            {{ m.balance }} {{ m.unit }}
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            Матеріали не знайдені.
-                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small mb-0">
-            Залишок рахується як сума операцій приходу (IN) мінус списання (OUT) по всіх ємностях.
-        </p>
-    </div>
+    {% endif %}
 </div>
 {% endblock %}
