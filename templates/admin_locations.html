@@ -1,33 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Локації{% endblock %}
+{% block title %}Локації (шафи){% endblock %}
 
 {% block content %}
 <h1>Локації (шафи)</h1>
 
 <div class="card">
-    <h2 style="margin-top:0;">Додати локацію</h2>
-    <form method="post">
+    <h2>Додати нову шафу</h2>
+    <form method="post" class="toolbar">
         <input type="hidden" name="action" value="add">
-        <div style="margin-bottom:8px;">
-            <label for="loc_name">Назва локації / шафи</label><br>
-            <input type="text" id="loc_name" name="name" required style="min-width:260px;">
+        <div>
+            <label>Назва шафи</label><br>
+            <input type="text" name="name" required placeholder="Наприклад: Шафа 1, Стелаж А">
         </div>
-        <button class="btn btn-primary" type="submit">Додати локацію</button>
+        <div class="toolbar-right">
+            <button type="submit" class="btn btn-primary btn-big">Додати</button>
+        </div>
     </form>
 </div>
 
 <div class="card">
-    <h2 style="margin-top:0;">Список локацій</h2>
-
+    <h2>Список локацій</h2>
     {% if not locations %}
-        <p class="muted">Ще не додано жодної локації.</p>
+        <p class="muted">Локації ще не додано.</p>
     {% else %}
-        <div style="overflow-x:auto;">
+        <div class="table-wrapper">
             <table>
                 <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Назва</th>
                     <th>Дії</th>
                 </tr>
@@ -35,28 +35,26 @@
                 <tbody>
                 {% for loc in locations %}
                     <tr>
-                        <td>{{ loc.id }}</td>
+                        <td>{{ loc.name }}</td>
                         <td>
-                            <!-- Редагування назви -->
-                            <form method="post" class="inline" style="margin:0;">
-                                <input type="hidden" name="action" value="edit">
-                                <input type="hidden" name="location_id" value="{{ loc.id }}">
-                                <input type="text" name="name" value="{{ loc.name }}" style="min-width:220px;">
-                                <button class="btn btn-secondary btn-sm" type="submit">Зберегти</button>
-                            </form>
-                        </td>
-                        <td>
-                            <a class="btn btn-secondary btn-sm"
-                               href="{{ url_for('admin_containers', location_id=loc.id) }}">
-                                Ємності цієї локації
-                            </a>
-
+                            <button type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-modal-open="edit-location-{{ loc.id }}">
+                                Перейменувати
+                            </button>
                             <form method="post"
                                   class="inline"
-                                  action="{{ url_for('delete_location', location_id=loc.id) }}"
-                                  onsubmit="return confirm('Видалити локацію {{ loc.name }}?\\nБудуть видалені всі її ємності та повʼязані операції.');">
-                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                                  action="{{ url_for('delete_location', location_id=loc.id) }}">
+                                <button type="submit"
+                                        class="btn btn-danger btn-sm"
+                                        data-confirm="Видалити локацію та всі її ємності й операції?">
+                                    Видалити
+                                </button>
                             </form>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('admin_containers', location_id=loc.id) }}">
+                                Ємності
+                            </a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -65,4 +63,29 @@
         </div>
     {% endif %}
 </div>
+
+{# Модальні вікна для перейменування локацій #}
+{% for loc in locations %}
+<div class="modal" id="edit-location-{{ loc.id }}">
+    <div class="modal-dialog">
+        <h3>Перейменувати локацію</h3>
+        <form method="post">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="location_id" value="{{ loc.id }}">
+            <div style="margin-bottom:8px;">
+                <label>Нова назва</label><br>
+                <input type="text" name="name" required value="{{ loc.name }}">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" data-modal-close>
+                    Скасувати
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    Зберегти
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

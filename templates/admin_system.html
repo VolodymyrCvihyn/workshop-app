@@ -16,7 +16,7 @@
     </p>
 
     <h3>Кількість записів у таблицях</h3>
-    <table style="max-width:400px;">
+    <table style="max-width:500px;">
         <thead>
         <tr>
             <th>Таблиця</th>
@@ -43,6 +43,20 @@
             <input type="hidden" name="action" value="vacuum">
             <button class="btn btn-secondary" type="submit">VACUUM (оптимізація)</button>
         </form>
+    </div>
+
+    <div style="margin-top:16px;">
+        <h3>Архівація старих операцій</h3>
+        <form method="post"
+              onsubmit="return confirm('Перенести старі операції в архів? Цю дію не можна скасувати.');">
+            <input type="hidden" name="action" value="archive">
+            <label>Архівувати операції, створені раніше ніж:</label><br>
+            <input type="date" name="archive_before" required>
+            <button class="btn btn-secondary" type="submit" style="margin-left:6px;">Архівувати</button>
+        </form>
+        <p class="muted" style="margin-top:6px;">
+            Операції переносяться в таблицю <code>transactions_archive</code> і більше не відображаються в журналі.
+        </p>
     </div>
 
     {% if integrity_result %}

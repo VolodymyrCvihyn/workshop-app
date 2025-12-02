@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Інвентаризація{% endblock %}
+
+{% block content %}
+<h1>Інвентаризація залишків</h1>
+
+<div class="card">
+    <h2 style="margin-top:0;">Фільтр ємностей</h2>
+    <form method="get" class="toolbar">
+        <div>
+            <label>Локація (шафа)</label><br>
+            <select name="location_id" onchange="this.form.submit()">
+                <option value="">(усі)</option>
+                {% for loc in locations %}
+                    <option value="{{ loc.id }}"
+                        {% if selected_location_id == loc.id %}selected{% endif %}>
+                        {{ loc.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Матеріал</label><br>
+            <select name="material_id" onchange="this.form.submit()">
+                <option value="">(усі)</option>
+                {% for m in materials %}
+                    <option value="{{ m.id }}"
+                        {% if selected_material_id == m.id %}selected{% endif %}>
+                        {{ m.code }} – {{ m.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <span class="muted">
+                Оберіть шафу та/або матеріал, щоб обмежити список для інвентаризації.
+            </span>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2 style="margin-top:0;">Перерахунок залишків</h2>
+
+    {% if not containers %}
+        <p class="muted">
+            За вибраним фільтром немає ємностей для інвентаризації.
+        </p>
+    {% else %}
+        <form method="post">
+            <input type="hidden" name="location_id" value="{{ selected_location_id or '' }}">
+            <input type="hidden" name="material_id" value="{{ selected_material_id or '' }}">
+
+            <div style="margin-bottom:8px;">
+                <label>Примітка до інвентаризації (опціонально)</label><br>
+                <input type="text" name="note" style="width:100%;"
+                       placeholder="Наприклад: зміна №1, кінець місяця">
+            </div>
+
+            <p class="muted">
+                У колонці <strong>Фактичний залишок</strong> вкажіть перераховану кількість.
+                Система автоматично створить службові IN/OUT-операції, щоб довести залишок до фактичного.
+            </p>
+
+            <div style="overflow-x:auto; margin-top:8px;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID ємності</th>
+                        <th>Локація</th>
+                        <th>Матеріал</th>
+                        <th>Очікуваний залишок</th>
+                        <th>Од. виміру</th>
+                        <th>Фактичний залишок</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in containers %}
+                        <tr class="{% if c.min_balance is not none and c.balance < c.min_balance %}low-stock{% endif %}">
+                            <td>{{ c.id }}</td>
+                            <td>{{ c.location_name }}</td>
+                            <td>{{ c.material_code }} – {{ c.material_name }}</td>
+                            <td>{{ '%.3f'|format(c.balance|float) }}</td>
+                            <td>{{ c.material_unit }}</td>
+                            <td>
+                                <input type="text" name="fact_{{ c.id }}" placeholder="залишити порожнім, якщо без змін"
+                                       style="width:120px;">
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:12px;">
+                <button class="btn btn-primary btn-big" type="submit">
+                    Провести інвентаризацію
+                </button>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

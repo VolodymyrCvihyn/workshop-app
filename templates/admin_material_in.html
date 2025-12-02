@@ -7,9 +7,14 @@
 
 <div class="card">
     <h2 style="margin-top:0;">Вибір матеріалу</h2>
-    <form method="get">
+    <form method="get" id="material-form">
+        <label>Пошук матеріалу</label><br>
+        <input type="text" id="material_search"
+               placeholder="Почніть вводити код або назву"
+               style="min-width:260px; margin-bottom:6px;">
+        <br>
         <label>Матеріал</label><br>
-        <select name="material_id" onchange="this.form.submit()">
+        <select name="material_id" onchange="this.form.submit()" id="material_select">
             <option value="">Оберіть матеріал</option>
             {% for m in materials %}
                 <option value="{{ m.id }}"
@@ -20,7 +25,7 @@
         </select>
     </form>
     <p class="muted" style="margin-top:8px;">
-        Спочатку виберіть матеріал, потім ви зможете розподілити прихід між його ємностями.
+        В полі вище можна ввести перші символи коду або назви — список матеріалів автоматично скоротиться.
     </p>
 </div>
 
@@ -91,4 +96,24 @@
         {% endif %}
     </div>
 {% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var input = document.getElementById("material_search");
+    var select = document.getElementById("material_select");
+    if (!input || !select) return;
+    input.addEventListener("input", function() {
+        var q = input.value.toLowerCase();
+        for (var i = 0; i < select.options.length; i++) {
+            var opt = select.options[i];
+            if (!opt.value) {
+                opt.hidden = false;
+                continue;
+            }
+            var text = opt.text.toLowerCase();
+            opt.hidden = text.indexOf(q) === -1;
+        }
+    });
+});
+</script>
 {% endblock %}

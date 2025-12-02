@@ -4,231 +4,680 @@
     <meta charset="utf-8">
     <title>{% block title %}Система обліку{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <meta name="theme-color" content="#1f2933">
     <style>
+        :root {
+            color-scheme: light;
+            --bg-color: #f3f4f6;
+            --bg-elevated: #e5e7eb;
+            --text-color: #111827;
+            --card-bg: #ffffff;
+            --header-bg: #020617;
+            --header-fg: #f9fafb;
+            --sidebar-bg: #020617;
+            --sidebar-border: #111827;
+            --sidebar-link: #9ca3af;
+            --sidebar-link-active-bg: #111827;
+            --sidebar-link-active-fg: #f9fafb;
+            --header-link-color: #e5e7eb;
+            --header-link-hover: #ffffff;
+            --muted-color: #6b7280;
+            --border-color: #e5e7eb;
+            --table-header-bg: #f9fafb;
+            --row-alt-bg: #f9fafb;
+            --btn-primary-bg: #2563eb;
+            --btn-primary-fg: #ffffff;
+            --btn-secondary-bg: #e5e7eb;
+            --btn-secondary-fg: #111827;
+            --btn-danger-bg: #dc2626;
+            --btn-danger-fg: #ffffff;
+            --flash-success-bg: #d1fae5;
+            --flash-success-fg: #065f46;
+            --flash-error-bg: #fee2e2;
+            --flash-error-fg: #991b1b;
+            --flash-info-bg: #e0f2fe;
+            --flash-info-fg: #075985;
+            --low-stock-bg: #fef2f2;
+            --input-bg: #ffffff;
+            --input-fg: #111827;
+        }
+
+        body.dark {
+            color-scheme: dark;
+            --bg-color: #020617;
+            --bg-elevated: #020617;
+            --text-color: #e5e7eb;
+            --card-bg: #020617;
+            --header-bg: #020617;
+            --header-fg: #e5e7eb;
+            --sidebar-bg: #020617;
+            --sidebar-border: #111827;
+            --sidebar-link: #9ca3af;
+            --sidebar-link-active-bg: #111827;
+            --sidebar-link-active-fg: #f9fafb;
+            --header-link-color: #9ca3af;
+            --header-link-hover: #ffffff;
+            --muted-color: #9ca3af;
+            --border-color: #111827;
+            --table-header-bg: #020617;
+            --row-alt-bg: #020617;
+            --btn-primary-bg: #2563eb;
+            --btn-primary-fg: #ffffff;
+            --btn-secondary-bg: #111827;
+            --btn-secondary-fg: #e5e7eb;
+            --btn-danger-bg: #b91c1c;
+            --btn-danger-fg: #f9fafb;
+            --flash-success-bg: #064e3b;
+            --flash-success-fg: #a7f3d0;
+            --flash-error-bg: #7f1d1d;
+            --flash-error-fg: #fecaca;
+            --flash-info-bg: #1d4ed8;
+            --flash-info-fg: #dbeafe;
+            --low-stock-bg: #451a1a;
+            --input-bg: #020617;
+            --input-fg: #e5e7eb;
+        }
+
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0;
-            background: #f5f5f7;
+            background: radial-gradient(circle at top left, var(--bg-elevated), var(--bg-color));
+            color: var(--text-color);
         }
-        header {
-            background: #1f2933;
-            color: #fff;
-            padding: 10px 16px;
+
+        .app-shell {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header.app-header {
+            background: var(--header-bg);
+            color: var(--header-fg);
+            padding: 10px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 16px;
+            border-bottom: 1px solid #111827;
+            flex-wrap: wrap;
         }
-        header .logo {
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .logo {
             font-weight: 600;
+            letter-spacing: 0.03em;
+            font-size: 16px;
         }
-        header nav a {
-            color: #e5e7eb;
-            margin-right: 10px;
+        .logo span {
+            opacity: 0.7;
+            font-weight: 400;
+            font-size: 13px;
+            margin-left: 6px;
+        }
+        .theme-toggle {
+            font-size: 11px;
+        }
+        .theme-toggle a {
+            color: #9ca3af;
             text-decoration: none;
-            font-size: 14px;
         }
-        header nav a:hover {
+        .theme-toggle a:hover {
             text-decoration: underline;
         }
-        .user-info {
+        .header-search {
+            min-width: 220px;
+        }
+        .header-search form {
+            margin: 0;
+        }
+        .header-search input[type="text"] {
+            width: 100%;
             font-size: 13px;
-            opacity: 0.8;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid #4b5563;
+            background: #020617;
+            color: #e5e7eb;
         }
-        main {
-            max-width: 1200px;
-            margin: 16px auto 32px;
-            padding: 0 16px;
+        .header-search input::placeholder {
+            color: #6b7280;
         }
-        .card {
-            background: #fff;
+
+        .user-block {
+            font-size: 13px;
+            text-align: right;
+        }
+        .user-block a {
+            color: #bfdbfe;
+            text-decoration: none;
+        }
+        .user-block a:hover {
+            text-decoration: underline;
+        }
+
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+
+        aside.sidebar {
+            width: 230px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            padding: 14px 10px;
+            box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            align-self: flex-start;
+        }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+            margin: 6px 6px;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 4px 0 10px;
+        }
+        .sidebar-nav li {
+            margin-bottom: 4px;
+        }
+        .sidebar-nav a {
+            display: block;
+            padding: 7px 10px;
             border-radius: 8px;
+            font-size: 13px;
+            color: var(--sidebar-link);
+            text-decoration: none;
+        }
+        .sidebar-nav a:hover {
+            background: #111827;
+            color: #e5e7eb;
+        }
+        .sidebar-nav a.active {
+            background: var(--sidebar-link-active-bg);
+            color: var(--sidebar-link-active-fg);
+        }
+
+        main.app-main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 16px auto 24px;
+            padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
             padding: 16px 20px;
             margin-bottom: 16px;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.28);
+            border: 1px solid var(--border-color);
         }
-        h1, h2, h3 {
+        h1 {
             margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 20px;
         }
+        h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
         table {
             border-collapse: collapse;
             width: 100%;
-            font-size: 14px;
+            font-size: 13px;
         }
         th, td {
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border-color);
             padding: 6px 8px;
             text-align: left;
         }
         th {
-            background: #f3f4f6;
+            background: var(--table-header-bg);
+            position: sticky;
+            top: 0;
+            z-index: 5;
         }
+        tbody tr:nth-child(even) {
+            background: var(--row-alt-bg);
+        }
+        td.num, th.num {
+            text-align: right;
+        }
+
+        .table-wrapper {
+            max-height: 450px;
+            overflow: auto;
+        }
+
         .btn {
             display: inline-block;
-            border-radius: 4px;
-            padding: 4px 10px;
+            border-radius: 999px;
+            padding: 5px 12px;
             font-size: 13px;
             border: 1px solid transparent;
             cursor: pointer;
             text-decoration: none;
+            transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.1s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
         }
         .btn-primary {
-            background: #2563eb;
-            color: #fff;
-            border-color: #2563eb;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: var(--btn-primary-fg);
+            border-color: #1d4ed8;
         }
         .btn-secondary {
-            background: #e5e7eb;
-            color: #111827;
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-fg);
+            border-color: var(--border-color);
         }
         .btn-danger {
-            background: #dc2626;
-            color: #fff;
-            border-color: #b91c1c;
+            background: #b91c1c;
+            color: var(--btn-danger-fg);
+            border-color: #7f1d1d;
         }
         .btn-sm {
             font-size: 12px;
-            padding: 2px 8px;
+            padding: 3px 9px;
+        }
+        .btn-big {
+            font-size: 15px;
+            padding: 8px 18px;
         }
         .btn + .btn {
             margin-left: 4px;
         }
+
         input[type="text"],
         input[type="password"],
         input[type="number"],
+        input[type="date"],
         select {
-            padding: 4px 6px;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
+            padding: 5px 7px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
             font-size: 13px;
+            background: var(--input-bg);
+            color: var(--input-fg);
         }
         input[type="number"] {
             width: 100px;
         }
+        input:focus,
+        select:focus {
+            outline: 1px solid #60a5fa;
+            border-color: #60a5fa;
+        }
+
         form.inline {
             display: inline;
         }
+
         .flash-container {
             margin-bottom: 12px;
         }
         .flash {
             padding: 8px 10px;
-            border-radius: 6px;
+            border-radius: 10px;
             font-size: 13px;
             margin-bottom: 6px;
         }
         .flash-success {
-            background: #d1fae5;
-            color: #065f46;
+            background: var(--flash-success-bg);
+            color: var(--flash-success-fg);
         }
         .flash-error {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--flash-error-bg);
+            color: var(--flash-error-fg);
         }
         .flash-info {
-            background: #e0f2fe;
-            color: #075985;
+            background: var(--flash-info-bg);
+            color: var(--flash-info-fg);
         }
+
         .low-stock {
-            background: #fef2f2;
+            background: var(--low-stock-bg);
         }
         .badge {
             display: inline-block;
-            padding: 2px 6px;
+            padding: 2px 8px;
             border-radius: 999px;
             font-size: 11px;
-            color: #fff;
+            color: #f9fafb;
             background: #ef4444;
         }
+        .badge-soft {
+            background: rgba(37, 99, 235, 0.15);
+            color: #93c5fd;
+        }
+        .badge-ok {
+            background: #16a34a;
+        }
+        .badge-warn {
+            background: #d97706;
+        }
+        .badge-danger {
+            background: #b91c1c;
+        }
+
         .muted {
-            color: #6b7280;
+            color: var(--muted-color);
             font-size: 12px;
         }
+
         .toolbar {
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         .toolbar-right {
             text-align: right;
         }
+
+        .kpi-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .kpi-card {
+            flex: 1 1 140px;
+            min-width: 140px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: radial-gradient(circle at top left, #1d4ed8, #111827);
+            color: #e5e7eb;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.45);
+        }
+        .kpi-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.8;
+        }
+        .kpi-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .kpi-sub {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        details.shelf {
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            background: rgba(15, 23, 42, 0.02);
+        }
+        details.shelf[open] {
+            background: rgba(37, 99, 235, 0.03);
+        }
+        details.shelf summary {
+            cursor: pointer;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            list-style: none;
+        }
+        details.shelf summary::-webkit-details-marker {
+            display: none;
+        }
+        .shelf-title {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .shelf-meta {
+            font-size: 12px;
+            color: var(--muted-color);
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.is-open {
+            display: flex;
+        }
+        .modal-dialog {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px 20px;
+            width: min(420px, 95vw);
+            box-shadow: 0 24px 50px rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+        }
+        .modal-dialog h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .modal-actions {
+            margin-top: 14px;
+            text-align: right;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+            aside.sidebar {
+                width: auto;
+                position: static;
+                border-right: none;
+                border-top: 1px solid var(--sidebar-border);
+                margin-top: 0;
+                padding-top: 10px;
+            }
+            main.app-main {
+                margin-top: 12px;
+            }
+        }
+
         @media (max-width: 768px) {
-            header {
+            header.app-header {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 8px;
             }
-            header nav {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-            .toolbar {
-                flex-direction: column;
-                align-items: stretch;
+            .user-block {
+                text-align: left;
             }
             table {
                 font-size: 12px;
+            }
+            .btn {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            .btn-sm {
+                padding: 3px 9px;
+                font-size: 13px;
+            }
+            .btn-big {
+                padding: 9px 18px;
+                font-size: 16px;
             }
         }
     </style>
     {% block head_extra %}{% endblock %}
 </head>
-<body>
-<header>
-    <div>
-        <span class="logo">Система обліку</span>
-        {% if session.get('is_admin') %}
-            <nav style="margin-top:4px;">
-                <a href="{{ url_for('admin_index') }}">Дашборд</a>
-                <a href="{{ url_for('admin_materials') }}">Матеріали</a>
-                <a href="{{ url_for('admin_locations') }}">Локації</a>
-                <a href="{{ url_for('admin_containers') }}">Ємності</a>
-                <a href="{{ url_for('admin_workers') }}">Працівники</a>
-                <a href="{{ url_for('admin_material_in') }}">Прихід (матеріал)</a>
-                <a href="{{ url_for('admin_stock') }}">Прихід (ємність)</a>
-                <a href="{{ url_for('admin_summary') }}">Залишки</a>
-                <a href="{{ url_for('report_workers') }}">Звіт працівники</a>
-                <a href="{{ url_for('report_materials') }}">Звіт матеріали</a>
-                <a href="{{ url_for('admin_transactions') }}">Журнал</a>
-                <a href="{{ url_for('admin_system') }}">Стан системи</a>
-                <a href="{{ url_for('admin_search') }}">Пошук</a>
-            </nav>
-        {% endif %}
-    </div>
-    <div class="user-info">
-        {% if session.get('user_id') %}
-            Користувач: <strong>{{ session.get('username') }}</strong>
+<body class="{% if theme == 'dark' %}dark{% endif %}">
+<div class="app-shell">
+    <header class="app-header">
+        <div class="header-left">
+            <div>
+                <div class="logo">
+                    Система обліку
+                    <span>майстерня</span>
+                </div>
+                <div class="theme-toggle">
+                    <a href="{{ url_for('toggle_theme', next=request.path) }}">
+                        {% if theme == 'dark' %}Світла тема{% else %}Темна тема{% endif %}
+                    </a>
+                </div>
+            </div>
             {% if session.get('is_admin') %}
-                (адміністратор)
+            <div class="header-search">
+                <form method="get" action="{{ url_for('admin_search') }}">
+                    <input type="text" name="q" placeholder="Пошук: матеріал, шафа, ємність..."
+                           value="{{ request.args.get('q', '') }}">
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        <div class="user-block">
+            {% if session.get('user_id') %}
+                Користувач: <strong>{{ session.get('username') }}</strong>
+                {% if session.get('is_admin') %}
+                    (адміністратор)
+                {% else %}
+                    (працівник)
+                {% endif %}
+                &nbsp;|&nbsp;
+                <a href="{{ url_for('admin_account') }}">Мій акаунт</a>
+                &nbsp;|&nbsp;
+                <a href="{{ url_for('logout') }}">Вийти</a>
             {% else %}
-                (працівник)
+                <a href="{{ url_for('login') }}">Увійти</a>
             {% endif %}
-            &nbsp;|&nbsp;
-            <a href="{{ url_for('admin_account') }}" style="color:#bfdbfe;">Мій акаунт</a>
-            &nbsp;|&nbsp;
-            <a href="{{ url_for('logout') }}" style="color:#fecaca;">Вийти</a>
-        {% else %}
-            <a href="{{ url_for('login') }}" style="color:#bfdbfe;">Увійти</a>
+        </div>
+    </header>
+
+    <div class="layout">
+        {% if session.get('is_admin') %}
+        <aside class="sidebar">
+            <div class="sidebar-section-title">Навігація</div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin_index') }}"
+                       class="{% if request.endpoint == 'admin_index' %}active{% endif %}">Дашборд</a></li>
+                <li><a href="{{ url_for('admin_materials') }}"
+                       class="{% if request.endpoint == 'admin_materials' %}active{% endif %}">Матеріали</a></li>
+                <li><a href="{{ url_for('admin_locations') }}"
+                       class="{% if request.endpoint == 'admin_locations' %}active{% endif %}">Локації</a></li>
+                <li><a href="{{ url_for('admin_containers') }}"
+                       class="{% if request.endpoint == 'admin_containers' %}active{% endif %}">Ємності</a></li>
+                <li><a href="{{ url_for('admin_workers') }}"
+                       class="{% if request.endpoint == 'admin_workers' %}active{% endif %}">Працівники</a></li>
+            </ul>
+
+            <div class="sidebar-section-title">Операції</div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin_material_in') }}"
+                       class="{% if request.endpoint == 'admin_material_in' %}active{% endif %}">
+                        Прихід (матеріал)
+                </a></li>
+                <li><a href="{{ url_for('admin_stock') }}"
+                       class="{% if request.endpoint == 'admin_stock' %}active{% endif %}">
+                        Прихід (ємність)
+                </a></li>
+                <li><a href="{{ url_for('admin_inventory') }}"
+                       class="{% if request.endpoint == 'admin_inventory' %}active{% endif %}">
+                        Інвентаризація
+                </a></li>
+            </ul>
+
+            <div class="sidebar-section-title">Звіти</div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin_summary') }}"
+                       class="{% if request.endpoint == 'admin_summary' %}active{% endif %}">Залишки</a></li>
+                <li><a href="{{ url_for('report_materials') }}"
+                       class="{% if request.endpoint == 'report_materials' %}active{% endif %}">Звіт матеріали</a></li>
+                <li><a href="{{ url_for('admin_transactions') }}"
+                       class="{% if request.endpoint == 'admin_transactions' %}active{% endif %}">Журнал</a></li>
+                <li><a href="{{ url_for('admin_system') }}"
+                       class="{% if request.endpoint == 'admin_system' %}active{% endif %}">Стан системи</a></li>
+            </ul>
+        </aside>
         {% endif %}
-    </div>
-</header>
 
-<main>
-    <div class="flash-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash flash-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+        <main class="app-main">
+            <div class="flash-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
 
-    {% block content %}{% endblock %}
-</main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('{{ url_for("static", filename="sw.js") }}').catch(function(e) {
+            console.log('SW registration failed', e);
+        });
+    });
+}
+
+// Підтвердження для небезпечних дій
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-confirm]');
+    if (btn) {
+        const msg = btn.getAttribute('data-confirm') || 'Ви впевнені?';
+        if (!confirm(msg)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }
+});
+
+// Модальні вікна
+document.addEventListener('click', function (e) {
+    const openBtn = e.target.closest('[data-modal-open]');
+    if (openBtn) {
+        const id = openBtn.getAttribute('data-modal-open');
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.add('is-open');
+        }
+    }
+    const closeBtn = e.target.closest('[data-modal-close]');
+    if (closeBtn) {
+        const modal = closeBtn.closest('.modal');
+        if (modal) {
+            modal.classList.remove('is-open');
+        }
+    }
+});
+
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('is-open');
+    }
+});
+</script>
 </body>
 </html>

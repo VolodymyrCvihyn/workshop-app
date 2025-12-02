@@ -6,6 +6,17 @@
 <h1>Залишки по матеріалах</h1>
 
 <div class="card">
+    <div class="toolbar">
+        <div>
+            <span class="muted">Поточні сумарні залишки по кожному матеріалу</span>
+        </div>
+        <div class="toolbar-right">
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('export_summary_excel') }}">
+                Експорт в Excel
+            </a>
+        </div>
+    </div>
+
     {% if not materials %}
         <p class="muted">Немає матеріалів.</p>
     {% else %}

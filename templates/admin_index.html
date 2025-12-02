@@ -5,79 +5,105 @@
 {% block content %}
 <h1>Дашборд</h1>
 
-<div class="card" style="margin-bottom:16px;">
-    <div class="toolbar">
-        <div>
-            <span class="muted">Огляд усіх шаф та ємностей</span>
+<div class="card">
+    {% set ns = namespace(locations=0, containers=0, low=0) %}
+    {% for shelf in shelves %}
+        {% set ns.locations = ns.locations + 1 %}
+        {% set ns.containers = ns.containers + (shelf.containers | length) %}
+        {% if shelf.has_low %}{% set ns.low = ns.low + 1 %}{% endif %}
+    {% endfor %}
+
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">Кількість шаф</div>
+            <div class="kpi-value">{{ ns.locations }}</div>
+            <div class="kpi-sub">Локації з матеріалами</div>
         </div>
-        <div class="toolbar-right">
-            <a class="btn btn-secondary btn-sm" href="{{ url_for('download_backup') }}">Зробити резервну копію БД</a>
+        <div class="kpi-card">
+            <div class="kpi-label">Ємностей</div>
+            <div class="kpi-value">{{ ns.containers }}</div>
+            <div class="kpi-sub">Комірки з матеріалом</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Шафи з низькими залишками</div>
+            <div class="kpi-value">{{ ns.low }}</div>
+            <div class="kpi-sub">Потребують уваги</div>
         </div>
     </div>
 </div>
 
-{% for shelf in shelves %}
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-            <h2 style="margin:0;">
-                Шафа / локація: {{ shelf.location.name }}
-                {% if shelf.has_low %}
-                    <span class="badge">Низькі залишки</span>
-                {% endif %}
-            </h2>
-            <div class="muted">
-                <a href="{{ url_for('admin_containers', location_id=shelf.location.id) }}">Переглянути ємності цієї шафи</a>
-            </div>
-        </div>
+<div class="card">
+    <h2>Шафи та ємності</h2>
+    <p class="muted" style="margin-bottom:8px;">
+        Натисніть на назву шафи, щоб розгорнути список ємностей.
+        Шафи з низькими залишками підсвічено.
+    </p>
 
-        {% if not shelf.containers %}
-            <p class="muted" style="margin-top:8px;">
-                У цій шафі ще немає жодної ємності.
-                <a href="{{ url_for('admin_containers', location_id=shelf.location.id) }}">Додати ємності</a>
-            </p>
-        {% else %}
-            <div style="margin-top:10px; overflow-x:auto;">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Матеріал</th>
-                        <th>Код</th>
-                        <th>Залишок</th>
-                        <th>Мін. залишок</th>
-                        <th>Одиниця</th>
-                        <th>Дії</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for c in shelf.containers %}
-                        <tr class="{% if c.min_balance is not none and c.balance < c.min_balance %}low-stock{% endif %}">
-                            <td>{{ c.material_name }}</td>
-                            <td>{{ c.material_code }}</td>
-                            <td>{{ '%.3f'|format(c.balance|float) }}</td>
-                            <td>
-                                {% if c.min_balance is not none %}
-                                    {{ '%.3f'|format(c.min_balance|float) }}
-                                {% else %}
-                                    <span class="muted">не задано</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ c.material_unit }}</td>
-                            <td>
-                                <a class="btn btn-secondary btn-sm"
-                                   href="{{ url_for('container_history', container_id=c.id) }}">
-                                    Історія
-                                </a>
-                                <a class="btn btn-secondary btn-sm"
-                                   href="{{ url_for('admin_containers', location_id=shelf.location.id, material_id=c.material_id) }}">
-                                    Ємності матеріалу
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-    </div>
-{% endfor %}
+    {% if not shelves %}
+        <p class="muted">Шафи ще не створені.</p>
+    {% else %}
+        {% for shelf in shelves %}
+            <details class="shelf">
+                <summary>
+                    <div>
+                        <div class="shelf-title">
+                            {{ shelf.location.name }}
+                            {% if shelf.has_low %}
+                                <span class="badge" style="margin-left:6px;">Низькі залишки</span>
+                            {% endif %}
+                        </div>
+                        <div class="shelf-meta">
+                            Ємностей: {{ shelf.containers | length }}
+                        </div>
+                    </div>
+                </summary>
+                {% if shelf.containers %}
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID ємності</th>
+                                <th>Матеріал</th>
+                                <th>Залишок</th>
+                                <th>Мінімум</th>
+                                <th>Од. виміру</th>
+                                <th>Дії</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for c in shelf.containers %}
+                                <tr class="{% if c.min_balance is not none and c.balance < c.min_balance %}low-stock{% endif %}">
+                                    <td>{{ c.id }}</td>
+                                    <td>{{ c.material_code }} – {{ c.material_name }}</td>
+                                    <td class="num">{{ '%.3f'|format(c.balance|float) }}</td>
+                                    <td class="num">
+                                        {% if c.min_balance is not none %}
+                                            {{ '%.3f'|format(c.min_balance|float) }}
+                                        {% else %}
+                                            <span class="muted">не налашт.</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ c.material_unit }}</td>
+                                    <td>
+                                        <a class="btn btn-secondary btn-sm"
+                                           href="{{ url_for('container_history', container_id=c.id) }}">
+                                            Історія
+                                        </a>
+                                        <a class="btn btn-secondary btn-sm"
+                                           href="{{ url_for('admin_containers', location_id=c.location_id) }}">
+                                            Відкрити в ємностях
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="muted" style="padding:0 12px 10px;">У цій шафі немає ємностей.</p>
+                {% endif %}
+            </details>
+        {% endfor %}
+    {% endif %}
+</div>
 {% endblock %}

@@ -67,18 +67,6 @@
         </div>
         <div class="toolbar-right">
             <button class="btn btn-secondary btn-sm" type="submit">Застосувати</button>
-            <a class="btn btn-secondary btn-sm"
-               href="{{ url_for('export_transactions_csv',
-                                date_from=filters.date_from,
-                                date_to=filters.date_to,
-                                worker_id=filters.worker_id,
-                                material_id=filters.material_id,
-                                direction=filters.direction,
-                                q=filters.q,
-                                storno='1' if filters.storno_only else '',
-                                service='1' if filters.service_only else '') }}">
-                Експорт в CSV
-            </a>
         </div>
     </form>
 </div>

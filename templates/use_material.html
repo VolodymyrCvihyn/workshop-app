@@ -6,71 +6,77 @@
 <div class="card" style="max-width:700px;">
     <h1>Списання матеріалу</h1>
 
-    <p>
-        <strong>Матеріал:</strong>
-        {{ container.material_code }} – {{ container.material_name }} ({{ container.material_unit }})<br>
-        <strong>Локація:</strong> {{ container.location_name }}<br>
-        <strong>Поточний залишок:</strong>
-        {{ '%.3f'|format(container.balance|float) }} {{ container.material_unit }}<br>
-        <strong>Мінімальний залишок:</strong>
-        {% if container.min_balance is not none %}
-            {{ '%.3f'|format(container.min_balance|float) }} {{ container.material_unit }}
-        {% else %}
-            <span class="muted">не задано</span>
-        {% endif %}
-    </p>
-
-    {% if current_worker %}
-        <p class="muted">
-            Ви увійшли як працівник:
-            <strong>{{ current_worker.name }}</strong>.
-            Оберіть кількість і, за потреби, вкажіть замовлення/роботу.
-        </p>
+    {% if not container %}
+        <p class="muted">Ємність за цим QR-кодом не знайдено.</p>
+        <a class="btn btn-secondary btn-big" href="{{ url_for('scan') }}">Сканувати інший QR</a>
     {% else %}
-        <p class="muted">
-            Для списання оберіть працівника зі списку або введіть його PIN.
+        <p>
+            <strong>Матеріал:</strong>
+            {{ container.material_code }} – {{ container.material_name }} ({{ container.material_unit }})<br>
+            <strong>Локація:</strong> {{ container.location_name }}<br>
+            <strong>Поточний залишок:</strong>
+            {{ '%.3f'|format(container.balance|float) }} {{ container.material_unit }}<br>
+            <strong>Мінімальний залишок:</strong>
+            {% if container.min_balance is not none %}
+                {{ '%.3f'|format(container.min_balance|float) }} {{ container.material_unit }}
+            {% else %}
+                <span class="muted">не задано</span>
+            {% endif %}
+        </p>
+
+        {% if current_worker %}
+            <p class="muted">
+                Ви увійшли як працівник:
+                <strong>{{ current_worker.name }}</strong>.
+                Введіть кількість і, за потреби, замовлення/роботу.
+            </p>
+        {% else %}
+            <p class="muted">
+                Для списання оберіть працівника зі списку або введіть його PIN.
+            </p>
+        {% endif %}
+
+        <form method="post">
+            {% if not current_worker %}
+                <div style="margin-bottom:8px;">
+                    <label>Працівник</label><br>
+                    <select name="worker_id">
+                        <option value="">(не обрано)</option>
+                        {% for w in workers %}
+                            <option value="{{ w.id }}">{{ w.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="muted">
+                        Або введіть PIN, якщо працівнику його призначено:
+                    </div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label>PIN</label><br>
+                    <input type="text" name="pin" placeholder="Наприклад, 1234">
+                </div>
+            {% endif %}
+
+            <div style="margin-bottom:8px;">
+                <label>Кількість до списання ({{ container.material_unit }})</label><br>
+                <input type="text" name="qty" required placeholder="наприклад, 1.0" autofocus>
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <label>Замовлення / робота (опціонально)</label><br>
+                <input type="text" name="job" style="width:100%;"
+                       placeholder="Номер замовлення, причина списання тощо">
+            </div>
+
+            <button class="btn btn-primary btn-big" type="submit">Списати</button>
+            <a class="btn btn-secondary btn-big" href="{{ url_for('scan') }}" style="margin-left:8px;">
+                Сканувати наступний QR
+            </a>
+        </form>
+
+        <p class="muted" style="margin-top:10px;">
+            Після списання ви можете одразу перейти до сканування наступної ємності, натиснувши
+            "Сканувати наступний QR" – камера відкриється в цій самій вкладці без створення нових.
         </p>
     {% endif %}
-
-    <form method="post">
-        {% if not current_worker %}
-            <div style="margin-bottom:8px;">
-                <label>Працівник</label><br>
-                <select name="worker_id">
-                    <option value="">(не обрано)</option>
-                    {% for w in workers %}
-                        <option value="{{ w.id }}">{{ w.name }}</option>
-                    {% endfor %}
-                </select>
-                <div class="muted">
-                    Або введіть PIN, якщо працівнику його призначено:
-                </div>
-            </div>
-            <div style="margin-bottom:8px;">
-                <label>PIN</label><br>
-                <input type="text" name="pin" placeholder="Наприклад, 1234">
-            </div>
-        {% endif %}
-
-        <div style="margin-bottom:8px;">
-            <label>Кількість до списання ({{ container.material_unit }})</label><br>
-            <input type="text" name="qty" required placeholder="наприклад, 1.0">
-        </div>
-
-        <div style="margin-bottom:8px;">
-            <label>Замовлення / робота (опціонально)</label><br>
-            <input type="text" name="job" style="width:100%;" placeholder="Номер замовлення, причина списання тощо">
-        </div>
-
-        <button class="btn btn-primary" type="submit">Списати</button>
-        <a class="btn btn-secondary" href="{{ url_for('scan') }}" style="margin-left:8px;">
-            Сканувати наступний QR
-        </a>
-    </form>
-
-    <p class="muted" style="margin-top:10px;">
-        Після списання ви можете одразу перейти до сканування наступної ємності, натиснувши
-        "Сканувати наступний QR" – камера відкриється в цій самій вкладці без створення нових.
-    </p>
 </div>
 {% endblock %}

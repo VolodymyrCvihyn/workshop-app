@@ -6,72 +6,66 @@
 <h1>Матеріали</h1>
 
 <div class="card">
-    <h2 style="margin-top:0;">Додати матеріал</h2>
-    <form method="post">
+    <h2>Додати новий матеріал</h2>
+    <p class="muted">
+        Код призначається автоматично по зростанню. Заповніть назву та одиницю виміру.
+    </p>
+    <form method="post" class="toolbar">
         <input type="hidden" name="action" value="add">
-        <div style="margin-bottom:8px;">
-            <label>Назва</label><br>
-            <input type="text" name="name" required style="min-width:250px;">
+        <div>
+            <label>Назва матеріалу</label><br>
+            <input type="text" name="name" required placeholder="Наприклад: Болт М8">
         </div>
-        <div style="margin-bottom:8px;">
+        <div>
             <label>Одиниця виміру</label><br>
-            <input type="text" name="unit" required placeholder="шт, кг, м, л ...">
+            <input type="text" name="unit" required placeholder="шт, м, кг...">
         </div>
-        <p class="muted">
-            Код матеріалу буде призначено автоматично як наступний порядковий номер.
-        </p>
-        <button class="btn btn-primary" type="submit">Додати матеріал</button>
+        <div class="toolbar-right">
+            <button type="submit" class="btn btn-primary btn-big">Додати</button>
+        </div>
     </form>
 </div>
 
 <div class="card">
-    <h2 style="margin-top:0;">Список матеріалів</h2>
-
+    <h2>Список матеріалів</h2>
     {% if not materials %}
-        <p class="muted">Ще не додано жодного матеріалу.</p>
+        <p class="muted">Матеріали ще не додано.</p>
     {% else %}
-        <div style="overflow-x:auto;">
+        <div class="table-wrapper">
             <table>
                 <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Код</th>
                     <th>Назва</th>
                     <th>Од. виміру</th>
-                    <th>Ємності</th>
                     <th>Дії</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for m in materials %}
                     <tr>
-                        <td>{{ m.id }}</td>
                         <td>{{ m.code }}</td>
+                        <td>{{ m.name }}</td>
+                        <td>{{ m.unit }}</td>
                         <td>
-                            <!-- Редагування назви + одиниці -->
-                            <form method="post" class="inline" style="margin:0;">
-                                <input type="hidden" name="action" value="edit">
-                                <input type="hidden" name="material_id" value="{{ m.id }}">
-                                <input type="text" name="name" value="{{ m.name }}" style="min-width:220px;">
-                        </td>
-                        <td>
-                                <input type="text" name="unit" value="{{ m.unit }}" style="width:80px;">
-                                <button class="btn btn-secondary btn-sm" type="submit">Зберегти</button>
-                            </form>
-                        </td>
-                        <td>
-                            <a class="btn btn-secondary btn-sm"
-                               href="{{ url_for('goto_material_containers', material_id=m.id) }}">
-                                Ємності матеріалу
-                            </a>
-                        </td>
-                        <td>
+                            <button type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-modal-open="edit-material-{{ m.id }}">
+                                Редагувати
+                            </button>
                             <form method="post"
                                   class="inline"
-                                  action="{{ url_for('delete_material', material_id=m.id) }}"
-                                  onsubmit="return confirm('Видалити матеріал {{ m.code }} - {{ m.name }}?\\nБудуть видалені всі його ємності та повʼязані операції.');">
-                                <button class="btn btn-danger btn-sm" type="submit">Видалити</button>
+                                  action="{{ url_for('delete_material', material_id=m.id) }}">
+                                <button type="submit"
+                                        class="btn btn-danger btn-sm"
+                                        data-confirm="Видалити матеріал і всі його ємності та операції?">
+                                    Видалити
+                                </button>
                             </form>
+                            <a class="btn btn-secondary btn-sm"
+                               href="{{ url_for('goto_material_containers', material_id=m.id) }}">
+                                Ємності
+                            </a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -80,4 +74,35 @@
         </div>
     {% endif %}
 </div>
+
+{# Модальні вікна для редагування матеріалів #}
+{% for m in materials %}
+<div class="modal" id="edit-material-{{ m.id }}">
+    <div class="modal-dialog">
+        <h3>Редагувати матеріал</h3>
+        <form method="post">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="material_id" value="{{ m.id }}">
+            <div style="margin-bottom:8px;">
+                <label>Код (тільки для інформації)</label><br>
+                <input type="text" value="{{ m.code }}" disabled>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label>Назва</label><br>
+                <input type="text" name="name" required value="{{ m.name }}">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label>Одиниця виміру</label><br>
+                <input type="text" name="unit" required value="{{ m.unit }}">
+            </div>
+            <div class="modal-actions">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-modal-close>Скасувати</button>
+                <button type="submit" class="btn btn-primary btn-sm">Зберегти</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
